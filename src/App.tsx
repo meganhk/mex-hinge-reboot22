@@ -1,34 +1,49 @@
-import { useState } from 'react'
-import reactLogo from './assets/react.svg'
-import viteLogo from '/vite.svg'
-import './App.css'
+import { BrowserRouter as Router, Routes, Route, Link } from 'react-router-dom'
+import PhotoCompare from './components/PhotoCompare'
+import PromptCompare from './components/PromptCompare'
+import Analytics from './components/Analytics'
 
-function App() {
-  const [count, setCount] = useState(0)
+function HomePage() {
+  const photoVotes = JSON.parse(localStorage.getItem('photoVotes') || '{}')
+  const promptVotes = JSON.parse(localStorage.getItem('promptVotes') || '{}')
+  
+  const totalVotes = Object.values(photoVotes).reduce((a, b) => a + b, 0) +
+                    Object.values(promptVotes).reduce((a, b) => a + b, 0)
 
   return (
-    <>
-      <div>
-        <a href="https://vitejs.dev" target="_blank">
-          <img src={viteLogo} className="logo" alt="Vite logo" />
-        </a>
-        <a href="https://react.dev" target="_blank">
-          <img src={reactLogo} className="logo react" alt="React logo" />
-        </a>
+    <div className="container">
+      <h1 className="title">Social Media Profile Optimizer</h1>
+      <div className="button-container">
+        <Link to="/photo-compare" className="main-button">
+          Compare Photos
+        </Link>
+        <Link to="/prompt-compare" className="main-button">
+          Compare Prompts
+        </Link>
+        {totalVotes >= 10 ? (
+          <Link to="/analytics" className="main-button">
+            View Analytics
+          </Link>
+        ) : (
+          <div className="votes-needed">
+            Make {10 - totalVotes} more comparisons to unlock analytics
+          </div>
+        )}
       </div>
-      <h1>Vite + React</h1>
-      <div className="card">
-        <button onClick={() => setCount((count) => count + 1)}>
-          count is {count}
-        </button>
-        <p>
-          Edit <code>src/App.tsx</code> and save to test HMR
-        </p>
-      </div>
-      <p className="read-the-docs">
-        Click on the Vite and React logos to learn more
-      </p>
-    </>
+    </div>
+  )
+}
+
+function App() {
+  return (
+    <Router>
+      <Routes>
+        <Route path="/" element={<HomePage />} />
+        <Route path="/photo-compare" element={<PhotoCompare />} />
+        <Route path="/prompt-compare" element={<PromptCompare />} />
+        <Route path="/analytics" element={<Analytics />} />
+      </Routes>
+    </Router>
   )
 }
 
