@@ -10,29 +10,42 @@ function HomePage() {
   const totalVotes = Object.values(photoVotes).reduce((a, b) => a + b, 0) +
                     Object.values(promptVotes).reduce((a, b) => a + b, 0)
 
-  return (
-    <div className="container">
-      <h1 className="title">Social Media Profile Optimizer</h1>
-      <div className="button-container">
-        <Link to="/photo-compare" className="main-button">
-          Compare Photos
-        </Link>
-        <Link to="/prompt-compare" className="main-button">
-          Compare Prompts
-        </Link>
-        {totalVotes >= 10 ? (
-          <Link to="/analytics" className="main-button">
-            View Analytics
-          </Link>
-        ) : (
-          <div className="votes-needed">
-            Make {10 - totalVotes} more comparisons to unlock analytics
-          </div>
-        )}
-      </div>
-    </div>
-  )
+                    return (
+                      <div className="container h-screen flex flex-col items-center justify-center">
+                        <div className="text-center max-w-3xl mx-auto px-4">
+                          <h1 className="text-4xl md:text-6xl font-bold mb-4">
+                            Mex is (unfortunately) considering downloading Hinge (again).
+                          </h1>
+                          
+                          <p className="text-xl md:text-2xl text-gray-600 mb-12">
+                            Wanna help her set up a profile?
+                          </p>
+                  
+                          <div className="flex flex-col md:flex-row gap-4 justify-center">
+                            <div className="flex gap-4">
+                              <Link to="/photo-compare" className="main-button">
+                                Compare Photos
+                              </Link>
+                              <Link to="/prompt-compare" className="main-button">
+                                Compare Prompts
+                              </Link>
+                            </div>
+                            
+                            {totalVotes >= 10 ? (
+                              <Link to="/analytics" className="main-button">
+                                View Analytics
+                              </Link>
+                            ) : (
+                              <div className="votes-needed">
+                                Make {10 - totalVotes} more comparisons to unlock analytics
+                              </div>
+                            )}
+                          </div>
+                        </div>
+                      </div>
+                    )
 }
+
 
 function App() {
   return (

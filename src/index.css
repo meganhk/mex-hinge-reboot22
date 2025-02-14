@@ -4,6 +4,10 @@
   max-width: 1200px;
   margin: 0 auto;
   padding: 20px;
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
 .photo-grid {
@@ -57,8 +61,8 @@
 }
 
 .main-button {
-  display: block;
-  padding: 20px;
+  display: inline-block;
+  padding: 12px 24px;
   background: #3b82f6;
   color: white;
   text-decoration: none;
@@ -66,6 +70,8 @@
   border-radius: 8px;
   font-size: 18px;
   transition: background-color 0.2s;
+  min-width: 180px;
+  margin: 0 auto;
 }
 
 .main-button:hover {
@@ -88,7 +94,7 @@
   transition: transform 0.2s, box-shadow 0.2s;
   min-height: 200px;
   display: flex;
-  align-items: center;
+  align-items: flex-start;
 }
 
 .prompt-card:hover {
@@ -116,7 +122,7 @@
 .profile-item.photo .photo-wrapper {
   position: relative;
   width: 100%;
-  padding-bottom: 100%; /* 4:3 aspect ratio like Hinge */
+  padding-bottom: 100%; 
 }
 
 .photo-wrapper img {
@@ -249,7 +255,6 @@
 
 /* Make sure container has relative positioning */
 .container {
-  position: relative;
   max-width: 1200px;
   margin: 0 auto;
   padding: 20px;
@@ -356,8 +361,9 @@
 .votes-needed {
   text-align: center;
   color: #666;
-  padding: 20px;
+  padding: 12px 24px;
   background: #f5f5f5;
   border-radius: 8px;
   font-size: 16px;
+  min-width: 180px;
 }
