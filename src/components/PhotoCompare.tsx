@@ -27,6 +27,7 @@ function PhotoCompare() {
     { id: 21, url: '/IMG_5853.jpeg', description: 'me at hongdae pocha' },
     { id: 22, url: '/FullSizeRender 2.jpeg', description: 'me w/ dior christmas tree' },
     { id: 23, url: '/IMG_3254.jpeg', description: 'me w/ eiffel tower ave new york' },
+    { id: 24, url: '/IMG_0247.jpeg', description: 'me w/ dan mirror' },
   ]
 
 

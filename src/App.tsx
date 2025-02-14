@@ -35,11 +35,11 @@ function HomePage() {
     <div className="container h-screen flex flex-col items-center justify-center">
       <div className="text-center max-w-3xl mx-auto px-4">
         <h1 className="text-4xl md:text-6xl font-bold mb-4">
-          Mex is (unfortunately) on the dating apps.
+        Mex is (unfortunately) considering downloading Hinge (again).
         </h1>
         
         <p className="text-xl md:text-2xl text-gray-600 mb-12">
-          The biggest struggle is setting up a profile.
+          Wanna help her set up a profile?
         </p>
 
         <div className="flex flex-col md:flex-row gap-4 justify-center">
