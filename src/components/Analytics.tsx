@@ -1,11 +1,22 @@
 import { useState } from 'react'
 import { Link } from 'react-router-dom'
+import { Photo, Prompt } from '../types'
+
+interface FormData {
+  name: string;
+  contact: string;
+  message: string;
+}
+
+interface VoteRecord {
+  [key: string]: number;
+}
 
 function Analytics() {
-  const [showBest, setShowBest] = useState(true)
-  const [showForm, setShowForm] = useState(false)
-  const [selectedItem, setSelectedItem] = useState(null)
-  const [formData, setFormData] = useState({
+  const [showBest, setShowBest] = useState<boolean>(true)
+  const [showForm, setShowForm] = useState<boolean>(false)
+  const [selectedItem, setSelectedItem] = useState<Photo | Prompt | null>(null)
+  const [formData, setFormData] = useState<FormData>({
     name: '',
     contact: '',
     message: ''
@@ -105,13 +116,19 @@ function Analytics() {
       },
   ]
 
-  const photoVotes = JSON.parse(localStorage.getItem('photoVotes') || '{}')
-  const promptVotes = JSON.parse(localStorage.getItem('promptVotes') || '{}')
+  const photoVotes = JSON.parse(localStorage.getItem('photoVotes') || '{}') as VoteRecord
+  const promptVotes = JSON.parse(localStorage.getItem('promptVotes') || '{}') as VoteRecord
 
+  const totalVotes = (): number => {
+    return Object.values(photoVotes).reduce((a: number, b: number) => a + b, 0) +
+           Object.values(promptVotes).reduce((a: number, b: number) => a + b, 0)
+  }
+
+  // In your sortedPhotos and sortedPrompts, add type assertions:
   const sortedPhotos = [...allPhotos]
     .map(photo => ({
       ...photo,
-      votes: photoVotes[photo.id] || 0
+      votes: photoVotes[photo.id.toString()] || 0
     }))
     .sort((a, b) => showBest ? b.votes - a.votes : a.votes - b.votes)
     .slice(0, 6)
@@ -119,7 +136,7 @@ function Analytics() {
   const sortedPrompts = [...allPrompts]
     .map(prompt => ({
       ...prompt,
-      votes: promptVotes[prompt.id] || 0
+      votes: promptVotes[prompt.id.toString()] || 0
     }))
     .sort((a, b) => showBest ? b.votes - a.votes : a.votes - b.votes)
     .slice(0, 3)
@@ -136,12 +153,12 @@ function Analytics() {
     { type: 'photo', index: 5 },
   ]
 
-  const handleInteraction = (item) => {
+  const handleInteraction = (item: Photo | Prompt): void => {
     setSelectedItem(item)
     setShowForm(true)
   }
 
-  const handleSubmit = (e) => {
+  const handleSubmit = (e: React.FormEvent<HTMLFormElement>): void => {
     e.preventDefault()
     console.log('Interaction:', {
       item: selectedItem,
@@ -155,8 +172,8 @@ function Analytics() {
   return (
     <div className="container">
       <div className="nav-buttons">
-        <Link to="/" className="nav-button">Home</Link>
-      </div>
+  <Link to="/" className="nav-button">Home</Link>
+</div>
 
       <h1 className="title">Profile Analytics</h1>
       
@@ -187,11 +204,11 @@ function Analytics() {
                   />
                 </div>
                 <button 
-                    className="like-button"
-                    onClick={() => handleInteraction(sortedPhotos[item.index])}
-                >
-                    ♡
-                </button>
+    className="like-button"
+    onClick={() => handleInteraction(sortedPhotos[item.index])}
+>
+    ♡
+</button>
               </div>
             ) : (
               <div className="prompt-card analytics">
@@ -200,11 +217,11 @@ function Analytics() {
                   <p className="prompt-answer">{sortedPrompts[item.index].answer}</p>
                 </div>
                 <button 
-                    className="like-button"
-                    onClick={() => handleInteraction(sortedPhotos[item.index])}
-                >
-                    ♡
-                </button>
+    className="like-button"
+    onClick={() => handleInteraction(sortedPrompts[item.index])}
+>
+    ♡
+</button>
               </div>
             )}
           </div>

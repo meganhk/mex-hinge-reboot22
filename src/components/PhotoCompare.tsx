@@ -1,8 +1,9 @@
 import { useState, useEffect } from 'react'
 import { Link } from 'react-router-dom'
+import { Photo, Votes } from '../types'
 
 function PhotoCompare() {
-  const allPhotos = [
+  const allPhotos: Photo[] = [
     { id: 1, url: '/IMG_8281.jpeg', description: 'me on bed' },
     { id: 2, url: '/IMG_2063.JPG', description: 'me at hanmiok' },
     { id: 3, url: '/IMG_1348.jpeg', description: 'me running' },
@@ -28,32 +29,34 @@ function PhotoCompare() {
     { id: 23, url: '/IMG_3254.jpeg', description: 'me w/ eiffel tower ave new york' },
   ]
 
-  const [votes, setVotes] = useState(() => {
+
+  const [votes, setVotes] = useState<Votes>(() => {
     const savedVotes = localStorage.getItem('photoVotes')
     return savedVotes ? JSON.parse(savedVotes) : {}
-  })
+})
 
-  const totalVotes = () => {
-    const photoVotes = JSON.parse(localStorage.getItem('photoVotes') || '{}')
-    const promptVotes = JSON.parse(localStorage.getItem('promptVotes') || '{}')
-    return Object.values(photoVotes).reduce((a, b) => a + b, 0) +
-           Object.values(promptVotes).reduce((a, b) => a + b, 0)
-  }
+// Update this function to use cached votes instead of reading from localStorage again
+const totalVotes = (): number => {
+    const savedPhotoVotes = Object.values(votes).reduce((a: number, b: number) => a + b, 0)
+    const promptVotes = JSON.parse(localStorage.getItem('promptVotes') || '{}') as Votes
+    const savedPromptVotes = Object.values(promptVotes).reduce((a: number, b: number) => a + b, 0)
+    return savedPhotoVotes + savedPromptVotes
+}
 
   useEffect(() => {
     localStorage.setItem('photoVotes', JSON.stringify(votes))
   }, [votes])
 
-  const getRandomPair = () => {
+  const getRandomPair = (): Photo[] => {
     const available = [...allPhotos]
     const first = available.splice(Math.floor(Math.random() * available.length), 1)[0]
     const second = available[Math.floor(Math.random() * available.length)]
     return [first, second]
   }
 
-  const [currentPair, setCurrentPair] = useState(getRandomPair())
+  const [currentPair, setCurrentPair] = useState<Photo[]>(getRandomPair())
 
-  const handleChoice = (photoId) => {
+  const handleChoice = (photoId: number): void => {
     setVotes(prev => ({
       ...prev,
       [photoId]: (prev[photoId] || 0) + 1
@@ -89,7 +92,7 @@ function PhotoCompare() {
       </div>
 
       <div style={{ marginTop: '20px', textAlign: 'center' }}>
-        Total comparisons: {Object.values(votes).reduce((a, b) => a + b, 0)}
+        Total comparisons: {Object.values(votes).reduce((a: number, b: number) => a + b, 0)}
       </div>
     </div>
   )

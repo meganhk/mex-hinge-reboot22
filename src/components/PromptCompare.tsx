@@ -1,8 +1,9 @@
 import { useState, useEffect } from 'react'
 import { Link } from 'react-router-dom'
+import { Prompt, Votes } from '../types'
 
 function PromptCompare() {
-  const allPrompts = [
+  const allPrompts: Prompt[] = [
     { 
       id: 1, 
       question: "I'll pick the topic if you start the conversation:",
@@ -70,33 +71,33 @@ function PromptCompare() {
       },
   ]
 
-  const [votes, setVotes] = useState(() => {
+  const [votes, setVotes] = useState<Votes>(() => {
     const savedVotes = localStorage.getItem('promptVotes')
     return savedVotes ? JSON.parse(savedVotes) : {}
-  })
+})
 
-  // Add the totalVotes function
-  const totalVotes = () => {
-    const photoVotes = JSON.parse(localStorage.getItem('photoVotes') || '{}')
-    const promptVotes = JSON.parse(localStorage.getItem('promptVotes') || '{}')
-    return Object.values(photoVotes).reduce((a, b) => a + b, 0) +
-           Object.values(promptVotes).reduce((a, b) => a + b, 0)
-  }
+// Update this function to use cached votes instead of reading from localStorage again
+const totalVotes = (): number => {
+    const savedPromptVotes = Object.values(votes).reduce((a: number, b: number) => a + b, 0)
+    const photoVotes = JSON.parse(localStorage.getItem('photoVotes') || '{}') as Votes
+    const savedPhotoVotes = Object.values(photoVotes).reduce((a: number, b: number) => a + b, 0)
+    return savedPhotoVotes + savedPromptVotes
+}
 
   useEffect(() => {
     localStorage.setItem('promptVotes', JSON.stringify(votes))
   }, [votes])
 
-  const getRandomPair = () => {
+  const getRandomPair = (): Prompt[] => {
     const available = [...allPrompts]
     const first = available.splice(Math.floor(Math.random() * available.length), 1)[0]
     const second = available[Math.floor(Math.random() * available.length)]
     return [first, second]
   }
 
-  const [currentPair, setCurrentPair] = useState(getRandomPair())
+  const [currentPair, setCurrentPair] = useState<Prompt[]>(getRandomPair())
 
-  const handleChoice = (promptId) => {
+  const handleChoice = (promptId: number): void => {
     setVotes(prev => ({
       ...prev,
       [promptId]: (prev[promptId] || 0) + 1
@@ -133,7 +134,7 @@ function PromptCompare() {
       </div>
 
       <div style={{ marginTop: '20px', textAlign: 'center' }}>
-        Total comparisons: {Object.values(votes).reduce((a, b) => a + b, 0)}
+        Total comparisons: {Object.values(votes).reduce((a: number, b: number) => a + b, 0)}
       </div>
     </div>
   )
