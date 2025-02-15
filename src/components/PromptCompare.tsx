@@ -106,7 +106,7 @@ const totalVotes = (): number => {
   }
 
   return (
-    <div className="container">
+    <div className="comparison-container">
       <div className="nav-buttons">
         <Link to="/" className="nav-button">Home</Link>
         {totalVotes() >= 10 && (

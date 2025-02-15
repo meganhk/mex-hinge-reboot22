@@ -11,7 +11,7 @@ function HomePage() {
                     Object.values(promptVotes).reduce((a, b) => a + b, 0)
 
                     return (
-                      <div className="container h-screen flex flex-col items-center justify-center">
+                      <div className="home-container">
                         <div className="text-center max-w-3xl mx-auto px-4">
                           <h1 className="text-4xl md:text-6xl font-bold mb-4">
                             Mex is (unfortunately) considering downloading Hinge (again).

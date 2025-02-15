@@ -3,6 +3,9 @@ import { Link } from 'react-router-dom'
 import { Photo, Votes } from '../types'
 
 function PhotoCompare() {
+
+
+ 
   const allPhotos: Photo[] = [
     { id: 1, url: '/IMG_8281.jpeg', description: 'me on bed' },
     { id: 2, url: '/IMG_2063.JPG', description: 'me at hanmiok' },
@@ -30,19 +33,19 @@ function PhotoCompare() {
     { id: 24, url: '/IMG_0247.jpeg', description: 'me w/ dan mirror' },
   ]
 
+  console.log('All Photos:', allPhotos)
 
   const [votes, setVotes] = useState<Votes>(() => {
     const savedVotes = localStorage.getItem('photoVotes')
     return savedVotes ? JSON.parse(savedVotes) : {}
-})
+  })
 
-// Update this function to use cached votes instead of reading from localStorage again
-const totalVotes = (): number => {
+  const totalVotes = (): number => {
     const savedPhotoVotes = Object.values(votes).reduce((a: number, b: number) => a + b, 0)
     const promptVotes = JSON.parse(localStorage.getItem('promptVotes') || '{}') as Votes
     const savedPromptVotes = Object.values(promptVotes).reduce((a: number, b: number) => a + b, 0)
     return savedPhotoVotes + savedPromptVotes
-}
+  }
 
   useEffect(() => {
     localStorage.setItem('photoVotes', JSON.stringify(votes))
@@ -52,12 +55,32 @@ const totalVotes = (): number => {
     const available = [...allPhotos]
     const first = available.splice(Math.floor(Math.random() * available.length), 1)[0]
     const second = available[Math.floor(Math.random() * available.length)]
+    console.log('Generated pair:', [first, second]) // Add this log
     return [first, second]
   }
 
   const [currentPair, setCurrentPair] = useState<Photo[]>(getRandomPair())
 
+  useEffect(() => {
+    console.log('Current pair updated:', currentPair)
+  }, [currentPair])
+
+  // Add logging to see what's happening
+  useEffect(() => {
+    console.log('Current pair:', currentPair)
+  }, [currentPair])
+
+  useEffect(() => {
+    currentPair.forEach(photo => {
+      const img = new Image();
+      img.src = photo.url;
+      img.onload = () => console.log('Image loaded successfully:', photo.url);
+      img.onerror = () => console.error('Image failed to load:', photo.url);
+    });
+  }, [currentPair]);
+
   const handleChoice = (photoId: number): void => {
+    console.log('Choice made:', photoId)
     setVotes(prev => ({
       ...prev,
       [photoId]: (prev[photoId] || 0) + 1
@@ -65,8 +88,14 @@ const totalVotes = (): number => {
     setCurrentPair(getRandomPair())
   }
 
+  // Add check to ensure we have a valid pair
+  if (!currentPair || currentPair.length !== 2) {
+    console.log('Invalid pair:', currentPair)
+    return <div>Loading...</div>
+  }
+
   return (
-    <div className="container">
+    <div className="comparison-container">
       <div className="nav-buttons">
         <Link to="/" className="nav-button">Home</Link>
         {totalVotes() >= 10 && (
@@ -75,23 +104,52 @@ const totalVotes = (): number => {
           </Link>
         )}
       </div>
-
+  
       <h1 className="title">Profile Photo Optimizer</h1>
       
       <div className="photo-grid">
-        {currentPair.map((photo) => (
-          <div 
-            key={photo.id} 
-            className="photo-card"
-            onClick={() => handleChoice(photo.id)}
-          >
-            <div className="photo-wrapper">
-              <img src={photo.url} alt={photo.description} />
+        {currentPair.map((photo) => {
+          console.log('Rendering photo:', {
+            id: photo.id, 
+            url: photo.url, 
+            description: photo.description
+          })
+          return (
+            <div 
+              key={photo.id} 
+              className="photo-card"
+              onClick={() => handleChoice(photo.id)}
+            >
+              <div className="photo-wrapper">
+                <img 
+                  src={photo.url} 
+                  alt={photo.description}
+                  onLoad={() => console.log('Image loaded successfully:', photo.url)}
+                  onError={(e) => {
+                    console.error('Image load error:', {
+                      url: photo.url,
+                      error: e
+                    })
+                  }}
+                />
+                <div 
+                  style={{
+                    position: 'absolute', 
+                    bottom: 0, 
+                    left: 0, 
+                    background: 'rgba(0,0,0,0.5)', 
+                    color: 'white', 
+                    padding: '5px'
+                  }}
+                >
+                  {photo.description}
+                </div>
+              </div>
             </div>
-          </div>
-        ))}
+          )
+        })}
       </div>
-
+  
       <div style={{ marginTop: '20px', textAlign: 'center' }}>
         Total comparisons: {Object.values(votes).reduce((a: number, b: number) => a + b, 0)}
       </div>

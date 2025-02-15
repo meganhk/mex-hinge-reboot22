@@ -1,6 +1,6 @@
 @import url('https://fonts.googleapis.com/css2?family=DM+Serif+Display&display=swap');
 
-.container {
+.home-container {
   max-width: 1200px;
   margin: 0 auto;
   padding: 20px;
@@ -8,6 +8,15 @@
   display: flex;
   align-items: center;
   justify-content: center;
+}
+
+.comparison-container {
+  max-width: 800px;
+  margin: 0 auto;
+  padding: 20px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
 }
 
 .photo-grid {
@@ -42,8 +51,19 @@
   left: 0;
   width: 100%;
   height: 100%;
-  object-fit: cover; /* This ensures the image fills the square without distortion */
+  object-fit: cover;
+  background-color: #f0f0f0; /* Add a background color to verify positioning */
+  border: 2px solid red; /* Add a border to ensure the img is visible */
 }
+  
+  .photo-card {
+    width: 300px;  /* or whatever width you prefer */
+    height: 400px; /* or whatever height you prefer */
+    display: flex;
+    justify-content: center;
+    align-items: center;
+  }
+
 
 .title {
   text-align: center;
