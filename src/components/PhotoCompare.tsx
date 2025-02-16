@@ -1,8 +1,8 @@
-import { useState, useEffect } from 'react'
-import { ref, onValue, set, increment } from 'firebase/database'
+import React from 'react'
+import { ref, onValue, update } from 'firebase/database'
 import { db } from '../firebase'
 import { Link } from 'react-router-dom'
-import { Photo, Votes } from '../types'
+import { Photo } from '../types'
 
 function PhotoCompare() {
   const allPhotos: Photo[] = [
@@ -35,38 +35,125 @@ function PhotoCompare() {
     { id: 27, url: '/IMG_4873.jpeg', description: 'me w/ hlab friendos in asakusa', type: 'photo' as const  },
   ]
 
-  const [votes, setVotes] = useState<Votes>({})
+  // Elo rating constants
+  const K_FACTOR = 32
+  const INITIAL_RATING = 1500
 
-  useEffect(() => {
-    const votesRef = ref(db, 'photoVotes')
-    onValue(votesRef, (snapshot) => {
-      const data = snapshot.val()
-      setVotes(data || {})
+  const [eloRatings, setEloRatings] = React.useState<{[key: number]: number}>({})
+  const [currentPair, setCurrentPair] = React.useState<Photo[]>([])
+  const [totalVotes, setTotalVotes] = React.useState(0)
+
+  // Load existing Elo ratings from Firebase on component mount
+  React.useEffect(() => {
+    // Listen to Elo ratings
+    const eloRatingsRef = ref(db, 'photoEloRatings')
+    const unsubscribeRatings = onValue(eloRatingsRef, (snapshot) => {
+      const data = snapshot.val() || {}
+      
+      // Initialize ratings for any items without existing ratings
+      const initialRatings = allPhotos.reduce((acc, photo) => {
+        acc[photo.id] = data[photo.id] || INITIAL_RATING
+        return acc
+      }, {} as {[key: number]: number})
+
+      setEloRatings(initialRatings)
     })
+
+    // Listen to total votes
+    const votesRef = ref(db, 'totalVotes')
+    const unsubscribeVotes = onValue(votesRef, (snapshot) => {
+      const data = snapshot.val() || { photoVotes: 0, promptVotes: 0 }
+      setTotalVotes(data.photoVotes + data.promptVotes)
+    })
+
+    // Cleanup subscriptions
+    return () => {
+      unsubscribeRatings()
+      unsubscribeVotes()
+    }
   }, [])
 
+  // Initialize first pair when ratings are loaded
+  React.useEffect(() => {
+    if (Object.keys(eloRatings).length > 0) {
+      const initialPair = getRandomPair()
+      setCurrentPair(initialPair)
+    }
+  }, [eloRatings])
+
+  // Calculate expected score based on Elo ratings
+  const calculateExpectedScore = (ratingA: number, ratingB: number): number => {
+    return 1 / (1 + Math.pow(10, (ratingB - ratingA) / 400))
+  }
+
+  // Update Elo ratings after a comparison
+  const updateEloRatings = (
+    winnerRating: number, 
+    loserRating: number, 
+    actualScore: number = 1
+  ): { winnerNewRating: number, loserNewRating: number } => {
+    const expectedScore = calculateExpectedScore(winnerRating, loserRating)
+    
+    const winnerNewRating = winnerRating + K_FACTOR * (actualScore - expectedScore)
+    const loserNewRating = loserRating - (winnerNewRating - winnerRating)
+
+    return { winnerNewRating, loserNewRating }
+  }
+
+  // Get a random pair of photos, preferably with similar ratings
   const getRandomPair = (): Photo[] => {
     const available = [...allPhotos]
-    const first = available.splice(Math.floor(Math.random() * available.length), 1)[0]
-    const second = available[Math.floor(Math.random() * available.length)]
-    console.log('Generated pair:', [first, second])
+    
+    // If only one photo, return that photo
+    if (available.length <= 1) return available
+
+    // Sort available photos by rating
+    const sortedPhotos = available.sort((a, b) => 
+      Math.abs((eloRatings[a.id] || INITIAL_RATING) - (eloRatings[b.id] || INITIAL_RATING))
+    )
+
+    // Try to find two photos with relatively close ratings
+    const first = sortedPhotos.splice(Math.floor(Math.random() * sortedPhotos.length), 1)[0]
+    const second = sortedPhotos[Math.floor(Math.random() * sortedPhotos.length)]
+
     return [first, second]
   }
 
-  const [currentPair, setCurrentPair] = useState<Photo[]>(getRandomPair())
+  // Handle photo selection
+  const handleChoice = async (winnerPhoto: Photo, loserPhoto: Photo): Promise<void> => {
+    try {
+      // Get current ratings
+      const winnerRating = eloRatings[winnerPhoto.id] || INITIAL_RATING
+      const loserRating = eloRatings[loserPhoto.id] || INITIAL_RATING
 
-  const handleChoice = async (photoId: number): Promise<void> => {
-    console.log('Choice made:', photoId)
-    const photoRef = ref(db, `photoVotes/${photoId}`)
-    await set(photoRef, increment(1))
-    setCurrentPair(getRandomPair())
+      // Calculate new ratings
+      const { winnerNewRating, loserNewRating } = updateEloRatings(
+        winnerRating, 
+        loserRating
+      )
+
+      // Prepare updates
+      const updates: {[key: string]: number} = {
+        [`photoEloRatings/${winnerPhoto.id}`]: winnerNewRating,
+        [`photoEloRatings/${loserPhoto.id}`]: loserNewRating,
+        'totalVotes/photoVotes': (totalVotes || 0) + 1
+      }
+
+      // Update Firebase
+      await update(ref(db), updates)
+
+      // Generate new pair
+      setCurrentPair(getRandomPair())
+    } catch (error) {
+      console.error('Error updating ratings:', error)
+    }
   }
 
   return (
     <div className="comparison-container">
       <div className="nav-buttons">
         <Link to="/" className="nav-button">Home</Link>
-        {Object.values(votes).reduce((a, b) => a + b, 0) >= 10 && (
+        {totalVotes >= 10 && (
           <Link to="/analytics" className="nav-button">
             View Analytics
           </Link>
@@ -76,11 +163,16 @@ function PhotoCompare() {
       <h1 className="title">Profile Photo Optimizer</h1>
       
       <div className="photo-grid">
-        {currentPair.map((photo) => (
+        {currentPair.map((photo, index) => (
           <div 
             key={photo.id} 
             className="photo-card"
-            onClick={() => handleChoice(photo.id)}
+            onClick={() => {
+              // Determine winner and loser based on index
+              const winnerPhoto = photo
+              const loserPhoto = currentPair[1 - index]
+              handleChoice(winnerPhoto, loserPhoto)
+            }}
           >
             <div className="photo-wrapper">
               <img 
@@ -93,7 +185,7 @@ function PhotoCompare() {
       </div>
 
       <div style={{ marginTop: '20px', textAlign: 'center' }}>
-        Total comparisons: {Object.values(votes).reduce((a, b) => a + b, 0)}
+        Total comparisons performed: {totalVotes}
       </div>
     </div>
   )

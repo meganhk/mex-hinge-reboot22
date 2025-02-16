@@ -37,7 +37,7 @@ function HomePage() {
                               </Link>
                             ) : (
                               <div className="votes-needed">
-                                Make {10 - totalVotes} more comparisons to unlock analytics
+                                Make {11 - totalVotes} more comparisons to unlock analytics
                               </div>
                             )}
                           </div>

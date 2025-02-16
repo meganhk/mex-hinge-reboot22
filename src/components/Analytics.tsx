@@ -1,29 +1,15 @@
-import { useState } from 'react'
-import { Link } from 'react-router-dom'
-import { ref, push, set } from 'firebase/database'
+import React, { useState, useEffect } from 'react'
+import { ref, onValue, push, set, update } from 'firebase/database'
 import { db } from '../firebase'
+import { Link } from 'react-router-dom'
 import { Photo, Prompt } from '../types'
-interface FormData {
-  name: string;
-  contact: string;
-  message: string;
-}
 
-interface VoteRecord {
-  [key: string]: number;
+interface EloRatings {
+  [key: number]: number;
 }
 
 function Analytics() {
-  const [showBest, setShowBest] = useState<boolean>(true)
-  const [showForm, setShowForm] = useState<boolean>(false)
-  const [selectedItem, setSelectedItem] = useState<Photo | Prompt | null>(null)
-  const [formData, setFormData] = useState<FormData>({
-    name: '',
-    contact: '',
-    message: ''
-  })
-  
-  const allPhotos = [
+  const allPhotos: Photo[] = [
     { id: 1, url: '/IMG_8281.jpeg', description: 'me on bed', type: 'photo' as const },
     { id: 2, url: '/IMG_1229.JPG', description: 'me w/ moet chandon picture', type: 'photo' as const},
     { id: 3, url: '/IMG_1348.jpeg', description: 'me running', type: 'photo' as const },
@@ -48,12 +34,12 @@ function Analytics() {
     { id: 22, url: '/FullSizeRender 2.jpeg', description: 'me w/ dior christmas tree' , type: 'photo' as const },
     { id: 23, url: '/IMG_3254.jpeg', description: 'me w/ eiffel tower ave new york', type: 'photo' as const  },
     { id: 24, url: '/IMG_0169.jpeg', description: 'me w/ dan mirror smiley', type: 'photo' as const  },
-    { id: 25, url: '/IMG_0188.jpeg', description: 'me w/ dan mirror schmexie', type: 'photo' as const  },
+    { id: 25, url: '/IMG_0188.jpeg', description: 'me w/ dan mirror schmexie', type: 'photo' as const },
     { id: 26, url: '/IMG_5104.jpeg', description: 'me w/ joss before heaven', type: 'photo' as const  },
     { id: 27, url: '/IMG_4873.jpeg', description: 'me w/ hlab friendos in asakusa', type: 'photo' as const  },
   ]
 
-  const allPrompts = [
+  const allPrompts: Prompt[] = [
     { 
       id: 1, 
       question: "I'll pick the topic if you start the conversation:",
@@ -140,30 +126,76 @@ function Analytics() {
       },
   ]
 
-  const photoVotes = JSON.parse(localStorage.getItem('photoVotes') || '{}') as VoteRecord
-  const promptVotes = JSON.parse(localStorage.getItem('promptVotes') || '{}') as VoteRecord
+  // Elo rating constants
+  const K_FACTOR = 32
+  const INITIAL_RATING = 1500
 
-  const totalVotes = (): number => {
-    return Object.values(photoVotes).reduce((a: number, b: number) => a + b, 0) +
-           Object.values(promptVotes).reduce((a: number, b: number) => a + b, 0)
-  }
+  const [showBest, setShowBest] = useState<boolean>(true)
+  const [showForm, setShowForm] = useState<boolean>(false)
+  const [selectedItem, setSelectedItem] = useState<Photo | Prompt | null>(null)
+  const [photoEloRatings, setPhotoEloRatings] = useState<EloRatings>({})
+  const [promptEloRatings, setPromptEloRatings] = useState<EloRatings>({})
+  const [formData, setFormData] = useState({
+    name: '',
+    contact: '',
+    message: ''
+  })
 
+  // Load existing Elo ratings from Firebase on component mount
+  useEffect(() => {
+    // Listen to photo Elo ratings
+    const photoRatingsRef = ref(db, 'photoEloRatings')
+    const unsubscribePhotoRatings = onValue(photoRatingsRef, (snapshot) => {
+      const data = snapshot.val() || {}
+      
+      // Initialize ratings for any items without existing ratings
+      const initialPhotoRatings = allPhotos.reduce((acc, photo) => {
+        acc[photo.id] = data[photo.id] || INITIAL_RATING
+        return acc
+      }, {} as EloRatings)
+
+      setPhotoEloRatings(initialPhotoRatings)
+    })
+
+    // Listen to prompt Elo ratings
+    const promptRatingsRef = ref(db, 'promptEloRatings')
+    const unsubscribePromptRatings = onValue(promptRatingsRef, (snapshot) => {
+      const data = snapshot.val() || {}
+      
+      // Initialize ratings for any items without existing ratings
+      const initialPromptRatings = allPrompts.reduce((acc, prompt) => {
+        acc[prompt.id] = data[prompt.id] || INITIAL_RATING
+        return acc
+      }, {} as EloRatings)
+
+      setPromptEloRatings(initialPromptRatings)
+    })
+
+    // Cleanup subscriptions
+    return () => {
+      unsubscribePhotoRatings()
+      unsubscribePromptRatings()
+    }
+  }, [])
+
+  // Sorted items based on Elo ratings
   const sortedPhotos = [...allPhotos]
     .map(photo => ({
       ...photo,
-      votes: photoVotes[photo.id.toString()] || 0
+      rating: photoEloRatings[photo.id] || INITIAL_RATING
     }))
-    .sort((a, b) => showBest ? b.votes - a.votes : a.votes - b.votes)
+    .sort((a, b) => showBest ? b.rating - a.rating : a.rating - b.rating)
     .slice(0, 6)
 
   const sortedPrompts = [...allPrompts]
     .map(prompt => ({
       ...prompt,
-      votes: promptVotes[prompt.id.toString()] || 0
+      rating: promptEloRatings[prompt.id] || INITIAL_RATING
     }))
-    .sort((a, b) => showBest ? b.votes - a.votes : a.votes - b.votes)
+    .sort((a, b) => showBest ? b.rating - a.rating : a.rating - b.rating)
     .slice(0, 3)
 
+  // Profile layout remains the same
   const profileLayout = [
     { type: 'photo', index: 0 },
     { type: 'prompt', index: 0 },
@@ -176,11 +208,32 @@ function Analytics() {
     { type: 'photo', index: 5 },
   ]
 
+  // Calculate expected score based on Elo ratings
+  const calculateExpectedScore = (ratingA: number, ratingB: number): number => {
+    return 1 / (1 + Math.pow(10, (ratingB - ratingA) / 400))
+  }
+
+  // Update Elo ratings after a comparison
+  const updateEloRatings = (
+    winnerRating: number, 
+    loserRating: number, 
+    actualScore: number = 1
+  ): { winnerNewRating: number, loserNewRating: number } => {
+    const expectedScore = calculateExpectedScore(winnerRating, loserRating)
+    
+    const winnerNewRating = winnerRating + K_FACTOR * (actualScore - expectedScore)
+    const loserNewRating = loserRating - (winnerNewRating - winnerRating)
+
+    return { winnerNewRating, loserNewRating }
+  }
+
+  // Handle interaction (like/comment)
   const handleInteraction = (item: Photo | Prompt): void => {
     setSelectedItem(item)
     setShowForm(true)
   }
 
+  // Submit form and save interaction
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>): Promise<void> => {
     e.preventDefault()
     
@@ -200,11 +253,41 @@ function Analytics() {
     setShowForm(false)
     setSelectedItem(null)
   }
+
+  // Function to simulate an Elo rating update when an item is "liked"
+  const handleEloUpdate = async (item: Photo | Prompt) => {
+    // Get a random item of the same type to compare against
+    const allItemsOfType = item.type === 'photo' ? allPhotos : allPrompts
+    const randomItem = allItemsOfType.find(i => i.id !== item.id)
+
+    if (!randomItem) return
+
+    // Determine current ratings
+    const currentRatings = item.type === 'photo' ? photoEloRatings : promptEloRatings
+    const randomItemRating = currentRatings[randomItem.id] || INITIAL_RATING
+    const itemRating = currentRatings[item.id] || INITIAL_RATING
+
+    // Update ratings
+    const { winnerNewRating, loserNewRating } = updateEloRatings(
+      itemRating, 
+      randomItemRating
+    )
+
+    // Prepare Firebase update
+    const updates: {[key: string]: number} = {
+      [`${item.type}EloRatings/${item.id}`]: winnerNewRating,
+      [`${item.type}EloRatings/${randomItem.id}`]: loserNewRating
+    }
+
+    // Update Firebase
+    await update(ref(db), updates)
+  }
+
   return (
     <div className="container">
       <div className="nav-buttons">
-  <Link to="/" className="nav-button">Home</Link>
-</div>
+        <Link to="/" className="nav-button">Home</Link>
+      </div>
 
       <h1 className="title">Profile Analytics</h1>
       
@@ -235,11 +318,14 @@ function Analytics() {
                   />
                 </div>
                 <button 
-    className="like-button"
-    onClick={() => handleInteraction(sortedPhotos[item.index])}
->
-    ♡
-</button>
+                  className="like-button"
+                  onClick={() => {
+                    handleInteraction(sortedPhotos[item.index])
+                    handleEloUpdate(sortedPhotos[item.index])
+                  }}
+                >
+                  ♡
+                </button>
               </div>
             ) : (
               <div className="prompt-card analytics">
@@ -248,11 +334,14 @@ function Analytics() {
                   <p className="prompt-answer">{sortedPrompts[item.index].answer}</p>
                 </div>
                 <button 
-    className="like-button"
-    onClick={() => handleInteraction(sortedPrompts[item.index])}
->
-    ♡
-</button>
+                  className="like-button"
+                  onClick={() => {
+                    handleInteraction(sortedPrompts[item.index])
+                    handleEloUpdate(sortedPrompts[item.index])
+                  }}
+                >
+                  ♡
+                </button>
               </div>
             )}
           </div>

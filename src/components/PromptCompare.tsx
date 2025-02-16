@@ -1,6 +1,8 @@
-import { useState, useEffect } from 'react'
+import React from 'react'
+import { ref, onValue, get, update } from 'firebase/database'
+import { db } from '../firebase'
 import { Link } from 'react-router-dom'
-import { Prompt, Votes } from '../types'
+import { Prompt } from '../types'
 
 function PromptCompare() {
   const allPrompts: Prompt[] = [
@@ -90,44 +92,125 @@ function PromptCompare() {
       },
   ]
 
-  const [votes, setVotes] = useState<Votes>(() => {
-    const savedVotes = localStorage.getItem('promptVotes')
-    return savedVotes ? JSON.parse(savedVotes) : {}
-})
+  // Elo rating constants
+  const K_FACTOR = 32
+  const INITIAL_RATING = 1500
 
-const totalVotes = (): number => {
-    const savedPromptVotes = Object.values(votes).reduce((a: number, b: number) => a + b, 0)
-    const photoVotes = JSON.parse(localStorage.getItem('photoVotes') || '{}') as Votes
-    const savedPhotoVotes = Object.values(photoVotes).reduce((a: number, b: number) => a + b, 0)
-    return savedPhotoVotes + savedPromptVotes
-}
+  const [eloRatings, setEloRatings] = React.useState<{[key: number]: number}>({})
+  const [currentPair, setCurrentPair] = React.useState<Prompt[]>([])
+  const [totalVotes, setTotalVotes] = React.useState(0)
 
-  useEffect(() => {
-    localStorage.setItem('promptVotes', JSON.stringify(votes))
-  }, [votes])
+  // Load existing Elo ratings from Firebase on component mount
+  React.useEffect(() => {
+    // Listen to Elo ratings
+    const eloRatingsRef = ref(db, 'promptEloRatings')
+    const unsubscribeRatings = onValue(eloRatingsRef, (snapshot) => {
+      const data = snapshot.val() || {}
+      
+      // Initialize ratings for any items without existing ratings
+      const initialRatings = allPrompts.reduce((acc, prompt) => {
+        acc[prompt.id] = data[prompt.id] || INITIAL_RATING
+        return acc
+      }, {} as {[key: number]: number})
 
+      setEloRatings(initialRatings)
+    })
+
+    // Listen to total votes
+    const votesRef = ref(db, 'totalVotes')
+    const unsubscribeVotes = onValue(votesRef, (snapshot) => {
+      const data = snapshot.val() || { promptVotes: 0, photoVotes: 0 }
+      setTotalVotes(data.promptVotes + data.photoVotes)
+    })
+
+    // Cleanup subscriptions
+    return () => {
+      unsubscribeRatings()
+      unsubscribeVotes()
+    }
+  }, [])
+
+  // Initialize first pair when ratings are loaded
+  React.useEffect(() => {
+    if (Object.keys(eloRatings).length > 0) {
+      const initialPair = getRandomPair()
+      setCurrentPair(initialPair)
+    }
+  }, [eloRatings])
+
+  // Calculate expected score based on Elo ratings
+  const calculateExpectedScore = (ratingA: number, ratingB: number): number => {
+    return 1 / (1 + Math.pow(10, (ratingB - ratingA) / 400))
+  }
+
+  // Update Elo ratings after a comparison
+  const updateEloRatings = (
+    winnerRating: number, 
+    loserRating: number, 
+    actualScore: number = 1
+  ): { winnerNewRating: number, loserNewRating: number } => {
+    const expectedScore = calculateExpectedScore(winnerRating, loserRating)
+    
+    const winnerNewRating = winnerRating + K_FACTOR * (actualScore - expectedScore)
+    const loserNewRating = loserRating - (winnerNewRating - winnerRating)
+
+    return { winnerNewRating, loserNewRating }
+  }
+
+  // Get a random pair of prompts, preferably with similar ratings
   const getRandomPair = (): Prompt[] => {
     const available = [...allPrompts]
-    const first = available.splice(Math.floor(Math.random() * available.length), 1)[0]
-    const second = available[Math.floor(Math.random() * available.length)]
+    
+    // If only one prompt, return that prompt
+    if (available.length <= 1) return available
+
+    // Sort available prompts by rating
+    const sortedPrompts = available.sort((a, b) => 
+      Math.abs((eloRatings[a.id] || INITIAL_RATING) - (eloRatings[b.id] || INITIAL_RATING))
+    )
+
+    // Try to find two prompts with relatively close ratings
+    const first = sortedPrompts.splice(Math.floor(Math.random() * sortedPrompts.length), 1)[0]
+    const second = sortedPrompts[Math.floor(Math.random() * sortedPrompts.length)]
+
     return [first, second]
   }
 
-  const [currentPair, setCurrentPair] = useState<Prompt[]>(getRandomPair())
+  // Handle prompt selection
+  const handleChoice = async (winnerPrompt: Prompt, loserPrompt: Prompt): Promise<void> => {
+    try {
+      // Get current ratings
+      const winnerRating = eloRatings[winnerPrompt.id] || INITIAL_RATING
+      const loserRating = eloRatings[loserPrompt.id] || INITIAL_RATING
 
-  const handleChoice = (promptId: number): void => {
-    setVotes(prev => ({
-      ...prev,
-      [promptId]: (prev[promptId] || 0) + 1
-    }))
-    setCurrentPair(getRandomPair())
+      // Calculate new ratings
+      const { winnerNewRating, loserNewRating } = updateEloRatings(
+        winnerRating, 
+        loserRating
+      )
+
+      // Prepare updates
+      const updates: {[key: string]: number} = {
+        [`promptEloRatings/${winnerPrompt.id}`]: winnerNewRating,
+        [`promptEloRatings/${loserPrompt.id}`]: loserNewRating,
+        'totalVotes/promptVotes': (totalVotes || 0) + 1
+      }
+
+      // Update Firebase
+      await update(ref(db), updates)
+
+      // Generate new pair
+      setCurrentPair(getRandomPair())
+    } catch (error) {
+      console.error('Error updating ratings:', error)
+    }
   }
 
   return (
     <div className="comparison-container">
       <div className="nav-buttons">
         <Link to="/" className="nav-button">Home</Link>
-        {totalVotes() >= 10 && (
+        {totalVotes >= 10 && (
           <Link to="/analytics" className="nav-button">
             View Analytics
           </Link>
@@ -137,11 +220,16 @@ const totalVotes = (): number => {
       <h1 className="title">Profile Prompt Optimizer</h1>
       
       <div className="prompt-grid">
-        {currentPair.map((prompt) => (
+        {currentPair.map((prompt, index) => (
           <div 
             key={prompt.id} 
             className="prompt-card"
-            onClick={() => handleChoice(prompt.id)}
+            onClick={() => {
+              // Determine winner and loser based on index
+              const winnerPrompt = prompt
+              const loserPrompt = currentPair[1 - index]
+              handleChoice(winnerPrompt, loserPrompt)
+            }}
           >
             <div className="prompt-content">
               <h2 className="prompt-question">{prompt.question}</h2>
@@ -152,7 +240,7 @@ const totalVotes = (): number => {
       </div>
 
       <div style={{ marginTop: '20px', textAlign: 'center' }}>
-        Total comparisons: {Object.values(votes).reduce((a: number, b: number) => a + b, 0)}
+        Total comparisons performed: {totalVotes}
       </div>
     </div>
   )
