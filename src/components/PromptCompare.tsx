@@ -7,67 +7,86 @@ function PromptCompare() {
     { 
       id: 1, 
       question: "I'll pick the topic if you start the conversation:",
-      answer: "the fake story of how we met"
+      answer: "the fake story of how we met",
+      type: 'prompt' as const
     },
     { 
       id: 2, 
       question: "I'll fall for you if:",
-      answer: "You know what all of these words mean: Beli, Strava, Shohei Ohtani, p<0.05"
+      answer: "You know what all of these words mean: Beli, Strava, Shohei Ohtani, p<0.05",
+      type: 'prompt' as const
     },
     { 
       id: 3, 
       question: "Let's debate this topic",
-      answer: "peas or broccoli"
+      answer: "peas or broccoli",
+      type: 'prompt' as const
     },
     { 
       id: 4, 
       question: "A life goal of mine",
-      answer: "Visit every country in the world. Also a marathon, maybe?"
+      answer: "Visit every country in the world. Also a marathon, maybe?",
+      type: 'prompt' as const
     },
     { 
       id: 5, 
       question: "Two truths and a lie",
-      answer: "I kill mice for a living, I have a black belt in kickboxing, I *placeholder text idk man*"
+      answer: "I kill mice for a living, I have a black belt in kickboxing, my favourite musical is Hamilton.",
+      type: 'prompt' as const
     },
     { 
       id: 6, 
       question: "The best way to ask me out is by",
-      answer: "Picking out a restaurant, making the reservation, and telling me when to show up + how to dress."
+      answer: "Picking out a restaurant and making the reservation.",
+      type: 'prompt' as const
     },
     { 
       id: 7, 
       question: "What if I told you that:",
-      answer: "I actually know where I want to eat"
+      answer: "I actually know where I want to eat",
+      type: 'prompt' as const
     },
     { 
       id: 8, 
       question: "Teach me something about",
-      answer: "What's wrong with you"
+      answer: "What's wrong with you",
+      type: 'prompt' as const
     },
     { 
       id: 9, 
       question: "Try to guess this about me",
-      answer: "My go to coffee order"
+      answer: "My go to coffee order",
+      type: 'prompt' as const
     },
     { 
       id: 10, 
       question: "Try to guess this about me",
-      answer: "My favourite book"
+      answer: "My favourite book",
+      type: 'prompt' as const
     },
     { 
       id: 11, 
       question: "We'll get along if",
-      answer: "You can teach me poker and then discuss how game theory applies to our daily lives"
+      answer: "You can teach me poker and then discuss how game theory applies to our daily lives",
+      type: 'prompt' as const
     },
     { 
         id: 12, 
         question: "Give me travel tips for:",
-        answer: "Literally any country. Show me your favourite local haunts, or the bougiest/most viral spots."
+        answer: "Literally any country. Show me your favourite local haunts, or the bougiest/most viral spots.",
+        type: 'prompt' as const
       },
       { 
         id: 13, 
         question: "First round is on me if",
-        answer: "You can guess my drink order"
+        answer: "You can guess my drink order",
+        type: 'prompt' as const
+      },
+      { 
+        id: 14, 
+        question: "Let's debate this topic",
+        answer: "Favourite biscuit. Also, are jaffa cakes cakes, or biscuits?",
+        type: 'prompt' as const
       },
   ]
 
@@ -76,7 +95,6 @@ function PromptCompare() {
     return savedVotes ? JSON.parse(savedVotes) : {}
 })
 
-// Update this function to use cached votes instead of reading from localStorage again
 const totalVotes = (): number => {
     const savedPromptVotes = Object.values(votes).reduce((a: number, b: number) => a + b, 0)
     const photoVotes = JSON.parse(localStorage.getItem('photoVotes') || '{}') as Votes
