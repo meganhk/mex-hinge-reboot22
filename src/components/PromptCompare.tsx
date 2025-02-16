@@ -101,40 +101,56 @@ function PromptCompare() {
   const [totalVotes, setTotalVotes] = React.useState(0)
 
   // Load existing Elo ratings from Firebase on component mount
-  React.useEffect(() => {
-    // Listen to Elo ratings
-    const eloRatingsRef = ref(db, 'promptEloRatings')
-    const unsubscribeRatings = onValue(eloRatingsRef, (snapshot) => {
-      const data = snapshot.val() || {}
-      
-      // Initialize ratings for any items without existing ratings
-      const initialRatings = allPrompts.reduce((acc, prompt) => {
-        acc[prompt.id] = data[prompt.id] || INITIAL_RATING
-        return acc
-      }, {} as {[key: number]: number})
+ React.useEffect(() => {
+     const votesRef = ref(db, 'totalVotes')
+ 
+     // Listen to total votes with more detailed logging
+     const votesListener = onValue(votesRef, (snapshot) => {
+       const data = snapshot.val() || { photoVotes: 0, promptVotes: 0 }
+       console.log('Current votes data:', data)
+       
+       // Ensure we're calculating a number
+       const photoVotes = Number(data.photoVotes) || 0
+       const promptVotes = Number(data.promptVotes) || 0
+       const totalVotesCount = photoVotes + promptVotes
+ 
+       console.log('Calculated total votes:', {
+         photoVotes, 
+         promptVotes, 
+         totalVotesCount
+       })
+ 
+       setTotalVotes(totalVotesCount)
+     }, (error) => {
+       console.error('Error fetching total votes:', error)
+       setTotalVotes(0)
+     })
+ 
+     // Listen to Elo ratings
+     const eloRatingsRef = ref(db, 'photoEloRatings')
+     const ratingsListener = onValue(eloRatingsRef, (snapshot) => {
+       const data = snapshot.val() || {}
+       
+       // Initialize ratings for any items without existing ratings
+       const initialRatings = allPrompts.reduce((acc, photo) => {
+         acc[photo.id] = data[photo.id] || INITIAL_RATING
+         return acc
+       }, {} as {[key: number]: number})
+ 
+       setEloRatings(initialRatings)
+     })
+ 
+     // Initialize first pair when component mounts
+     const initialPair = getRandomPair()
+     setCurrentPair(initialPair)
+ 
+     // Cleanup listeners
+     return () => {
+       votesListener()
+       ratingsListener()
+     }
+   }, [])
 
-      setEloRatings(initialRatings)
-    })
-
-    // Listen to total votes
-    const votesRef = ref(db, 'totalVotes/promptVotes')
-    const unsubscribeVotes = onValue(votesRef, (snapshot) => {
-      const currentVotes = snapshot.val() || 0
-      setTotalVotes(currentVotes)
-    })
-
-    // Immediately generate pair when component mounts
-    const initialPair = getRandomPair()
-    setCurrentPair(initialPair)
-
-    // Cleanup subscriptions
-    return () => {
-      unsubscribeRatings()
-      unsubscribeVotes()
-    }
-  }, [])
-
-  // Calculate expected score based on Elo ratings
   const calculateExpectedScore = (ratingA: number, ratingB: number): number => {
     return 1 / (1 + Math.pow(10, (ratingB - ratingA) / 400))
   }

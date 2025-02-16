@@ -195,7 +195,6 @@ function PhotoCompare() {
             key={photo.id} 
             className="photo-card"
             onClick={() => {
-              // Determine winner and loser based on index
               const winnerPhoto = photo
               const loserPhoto = currentPair[1 - index]
               handleChoice(winnerPhoto, loserPhoto)
@@ -208,7 +207,7 @@ function PhotoCompare() {
                 style={{ 
                   maxWidth: '100%', 
                   maxHeight: '500px', 
-                  objectFit: 'contain' 
+                  objectFit: 'cover' 
                 }}
               />
             </div>
