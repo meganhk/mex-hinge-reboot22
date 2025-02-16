@@ -66,20 +66,16 @@ function PhotoCompare() {
       setTotalVotes(data.photoVotes + data.promptVotes)
     })
 
+    // Immediately generate pair when component mounts
+    const initialPair = getRandomPair()
+    setCurrentPair(initialPair)
+
     // Cleanup subscriptions
     return () => {
       unsubscribeRatings()
       unsubscribeVotes()
     }
   }, [])
-
-  // Initialize first pair when ratings are loaded
-  React.useEffect(() => {
-    if (Object.keys(eloRatings).length > 0) {
-      const initialPair = getRandomPair()
-      setCurrentPair(initialPair)
-    }
-  }, [eloRatings])
 
   // Calculate expected score based on Elo ratings
   const calculateExpectedScore = (ratingA: number, ratingB: number): number => {
@@ -143,10 +139,16 @@ function PhotoCompare() {
       await update(ref(db), updates)
 
       // Generate new pair
-      setCurrentPair(getRandomPair())
+      const newPair = getRandomPair()
+      setCurrentPair(newPair)
     } catch (error) {
       console.error('Error updating ratings:', error)
     }
+  }
+
+  // If no current pair, show nothing
+  if (currentPair.length === 0) {
+    return <div>Loading...</div>
   }
 
   return (
@@ -178,6 +180,11 @@ function PhotoCompare() {
               <img 
                 src={photo.url} 
                 alt={photo.description}
+                style={{ 
+                  maxWidth: '100%', 
+                  maxHeight: '100%', 
+                  objectFit: 'cover' 
+                }}
               />
             </div>
           </div>

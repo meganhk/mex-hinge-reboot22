@@ -1,5 +1,5 @@
 import React from 'react'
-import { ref, onValue, get, update } from 'firebase/database'
+import { ref, onValue, update } from 'firebase/database'
 import { db } from '../firebase'
 import { Link } from 'react-router-dom'
 import { Prompt } from '../types'
@@ -73,23 +73,23 @@ function PromptCompare() {
       type: 'prompt' as const
     },
     { 
-        id: 12, 
-        question: "Give me travel tips for:",
-        answer: "Literally any country. Show me your favourite local haunts, or the bougiest/most viral spots.",
-        type: 'prompt' as const
-      },
-      { 
-        id: 13, 
-        question: "First round is on me if",
-        answer: "You can guess my drink order",
-        type: 'prompt' as const
-      },
-      { 
-        id: 14, 
-        question: "Let's debate this topic",
-        answer: "Favourite biscuit. Also, are jaffa cakes cakes, or biscuits?",
-        type: 'prompt' as const
-      },
+      id: 12, 
+      question: "Give me travel tips for:",
+      answer: "Literally any country. Show me your favourite local haunts, or the bougiest/most viral spots.",
+      type: 'prompt' as const
+    },
+    { 
+      id: 13, 
+      question: "First round is on me if",
+      answer: "You can guess my drink order",
+      type: 'prompt' as const
+    },
+    { 
+      id: 14, 
+      question: "Let's debate this topic",
+      answer: "Favourite biscuit. Also, are jaffa cakes cakes, or biscuits?",
+      type: 'prompt' as const
+    },
   ]
 
   // Elo rating constants
@@ -119,9 +119,13 @@ function PromptCompare() {
     // Listen to total votes
     const votesRef = ref(db, 'totalVotes')
     const unsubscribeVotes = onValue(votesRef, (snapshot) => {
-      const data = snapshot.val() || { promptVotes: 0, photoVotes: 0 }
-      setTotalVotes(data.promptVotes + data.photoVotes)
+      const data = snapshot.val() || { photoVotes: 0, promptVotes: 0 }
+      setTotalVotes(data.photoVotes + data.promptVotes)
     })
+
+    // Immediately generate pair when component mounts
+    const initialPair = getRandomPair()
+    setCurrentPair(initialPair)
 
     // Cleanup subscriptions
     return () => {
@@ -129,14 +133,6 @@ function PromptCompare() {
       unsubscribeVotes()
     }
   }, [])
-
-  // Initialize first pair when ratings are loaded
-  React.useEffect(() => {
-    if (Object.keys(eloRatings).length > 0) {
-      const initialPair = getRandomPair()
-      setCurrentPair(initialPair)
-    }
-  }, [eloRatings])
 
   // Calculate expected score based on Elo ratings
   const calculateExpectedScore = (ratingA: number, ratingB: number): number => {
@@ -200,10 +196,16 @@ function PromptCompare() {
       await update(ref(db), updates)
 
       // Generate new pair
-      setCurrentPair(getRandomPair())
+      const newPair = getRandomPair()
+      setCurrentPair(newPair)
     } catch (error) {
       console.error('Error updating ratings:', error)
     }
+  }
+
+  // If no current pair, show loading
+  if (currentPair.length === 0) {
+    return <div>Loading...</div>
   }
 
   return (
