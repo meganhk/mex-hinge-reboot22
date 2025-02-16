@@ -1,5 +1,5 @@
 import React from 'react'
-import { ref, onValue, update } from 'firebase/database'
+import { ref, onValue, update, get } from 'firebase/database'
 import { db } from '../firebase'
 import { Link } from 'react-router-dom'
 import { Photo } from '../types'
@@ -36,18 +36,42 @@ function PhotoCompare() {
   ]
 
   // Elo rating constants
-  const K_FACTOR = 32
   const INITIAL_RATING = 1500
+  const K_FACTOR = 32
 
   const [eloRatings, setEloRatings] = React.useState<{[key: number]: number}>({})
   const [currentPair, setCurrentPair] = React.useState<Photo[]>([])
-  const [totalVotes, setTotalVotes] = React.useState(0)
+  const [totalVotes, setTotalVotes] = React.useState<number>(0)
 
-  // Load existing Elo ratings from Firebase on component mount
+  // Detailed initialization and logging
   React.useEffect(() => {
+    const votesRef = ref(db, 'totalVotes')
+
+    // Listen to total votes with more detailed logging
+    const votesListener = onValue(votesRef, (snapshot) => {
+      const data = snapshot.val() || { photoVotes: 0, promptVotes: 0 }
+      console.log('Votes data received:', data)
+      
+      // Ensure we're calculating a number
+      const photoVotes = Number(data.photoVotes) || 0
+      const promptVotes = Number(data.promptVotes) || 0
+      const totalVotesCount = photoVotes + promptVotes
+
+      console.log('Calculated total votes:', {
+        photoVotes, 
+        promptVotes, 
+        totalVotesCount
+      })
+
+      setTotalVotes(totalVotesCount)
+    }, (error) => {
+      console.error('Error fetching total votes:', error)
+      setTotalVotes(0)
+    })
+
     // Listen to Elo ratings
     const eloRatingsRef = ref(db, 'photoEloRatings')
-    const unsubscribeRatings = onValue(eloRatingsRef, (snapshot) => {
+    const ratingsListener = onValue(eloRatingsRef, (snapshot) => {
       const data = snapshot.val() || {}
       
       // Initialize ratings for any items without existing ratings
@@ -59,21 +83,14 @@ function PhotoCompare() {
       setEloRatings(initialRatings)
     })
 
-    // Listen to total votes
-    const votesRef = ref(db, 'totalVotes')
-    const unsubscribeVotes = onValue(votesRef, (snapshot) => {
-      const data = snapshot.val() || { photoVotes: 0, promptVotes: 0 }
-      setTotalVotes(data.photoVotes + data.promptVotes)
-    })
-
-    // Immediately generate pair when component mounts
+    // Initialize first pair when component mounts
     const initialPair = getRandomPair()
     setCurrentPair(initialPair)
 
-    // Cleanup subscriptions
+    // Cleanup listeners
     return () => {
-      unsubscribeRatings()
-      unsubscribeVotes()
+      votesListener()
+      ratingsListener()
     }
   }, [])
 
@@ -85,12 +102,11 @@ function PhotoCompare() {
   // Update Elo ratings after a comparison
   const updateEloRatings = (
     winnerRating: number, 
-    loserRating: number, 
-    actualScore: number = 1
+    loserRating: number
   ): { winnerNewRating: number, loserNewRating: number } => {
     const expectedScore = calculateExpectedScore(winnerRating, loserRating)
     
-    const winnerNewRating = winnerRating + K_FACTOR * (actualScore - expectedScore)
+    const winnerNewRating = winnerRating + K_FACTOR * (1 - expectedScore)
     const loserNewRating = loserRating - (winnerNewRating - winnerRating)
 
     return { winnerNewRating, loserNewRating }
@@ -146,7 +162,7 @@ function PhotoCompare() {
     }
   }
 
-  // If no current pair, show nothing
+  // If no current pair, show loading
   if (currentPair.length === 0) {
     return <div>Loading...</div>
   }
@@ -182,8 +198,8 @@ function PhotoCompare() {
                 alt={photo.description}
                 style={{ 
                   maxWidth: '100%', 
-                  maxHeight: '100%', 
-                  objectFit: 'cover' 
+                  maxHeight: '500px', 
+                  objectFit: 'contain' 
                 }}
               />
             </div>
@@ -192,7 +208,7 @@ function PhotoCompare() {
       </div>
 
       <div style={{ marginTop: '20px', textAlign: 'center' }}>
-        Total comparisons performed: {totalVotes}
+        Total comparisons performed: {totalVotes === undefined ? 0 : totalVotes}
       </div>
     </div>
   )
