@@ -50,7 +50,7 @@ function PhotoCompare() {
     // Listen to total votes with more detailed logging
     const votesListener = onValue(votesRef, (snapshot) => {
       const data = snapshot.val() || { photoVotes: 0, promptVotes: 0 }
-      console.log('Votes data received:', data)
+      console.log('Current votes data:', data)
       
       // Ensure we're calculating a number
       const photoVotes = Number(data.photoVotes) || 0
@@ -134,6 +134,13 @@ function PhotoCompare() {
   // Handle photo selection
   const handleChoice = async (winnerPhoto: Photo, loserPhoto: Photo): Promise<void> => {
     try {
+      // Get current votes
+      const votesRef = ref(db, 'totalVotes')
+      const votesSnapshot = await get(votesRef)
+      const currentVotes = votesSnapshot.val() || { photoVotes: 0, promptVotes: 0 }
+      
+      console.log('Current votes before update:', currentVotes)
+
       // Get current ratings
       const winnerRating = eloRatings[winnerPhoto.id] || INITIAL_RATING
       const loserRating = eloRatings[loserPhoto.id] || INITIAL_RATING
@@ -148,8 +155,10 @@ function PhotoCompare() {
       const updates: {[key: string]: number} = {
         [`photoEloRatings/${winnerPhoto.id}`]: winnerNewRating,
         [`photoEloRatings/${loserPhoto.id}`]: loserNewRating,
-        'totalVotes/photoVotes': (totalVotes || 0) + 1
+        'totalVotes/photoVotes': (currentVotes.photoVotes || 0) + 1
       }
+
+      console.log('Prepared updates:', updates)
 
       // Update Firebase
       await update(ref(db), updates)

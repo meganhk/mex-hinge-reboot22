@@ -1,5 +1,5 @@
 import React from 'react'
-import { ref, onValue, update } from 'firebase/database'
+import { ref, onValue, update, get } from 'firebase/database'
 import { db } from '../firebase'
 import { Link } from 'react-router-dom'
 import { Prompt } from '../types'
@@ -73,23 +73,23 @@ function PromptCompare() {
       type: 'prompt' as const
     },
     { 
-      id: 12, 
-      question: "Give me travel tips for:",
-      answer: "Literally any country. Show me your favourite local haunts, or the bougiest/most viral spots.",
-      type: 'prompt' as const
-    },
-    { 
-      id: 13, 
-      question: "First round is on me if",
-      answer: "You can guess my drink order",
-      type: 'prompt' as const
-    },
-    { 
-      id: 14, 
-      question: "Let's debate this topic",
-      answer: "Favourite biscuit. Also, are jaffa cakes cakes, or biscuits?",
-      type: 'prompt' as const
-    },
+        id: 12, 
+        question: "Give me travel tips for:",
+        answer: "Literally any country. Show me your favourite local haunts, or the bougiest/most viral spots.",
+        type: 'prompt' as const
+      },
+      { 
+        id: 13, 
+        question: "First round is on me if",
+        answer: "You can guess my drink order",
+        type: 'prompt' as const
+      },
+      { 
+        id: 14, 
+        question: "Let's debate this topic",
+        answer: "Favourite biscuit. Also, are jaffa cakes cakes, or biscuits?",
+        type: 'prompt' as const
+      },
   ]
 
   // Elo rating constants
@@ -117,10 +117,10 @@ function PromptCompare() {
     })
 
     // Listen to total votes
-    const votesRef = ref(db, 'totalVotes')
+    const votesRef = ref(db, 'totalVotes/promptVotes')
     const unsubscribeVotes = onValue(votesRef, (snapshot) => {
-      const data = snapshot.val() || { photoVotes: 0, promptVotes: 0 }
-      setTotalVotes(data.photoVotes + data.promptVotes)
+      const currentVotes = snapshot.val() || 0
+      setTotalVotes(currentVotes)
     })
 
     // Immediately generate pair when component mounts
@@ -172,32 +172,30 @@ function PromptCompare() {
     return [first, second]
   }
 
-  // Handle prompt selection
   const handleChoice = async (winnerPrompt: Prompt, loserPrompt: Prompt): Promise<void> => {
     try {
-      // Get current ratings
       const winnerRating = eloRatings[winnerPrompt.id] || INITIAL_RATING
       const loserRating = eloRatings[loserPrompt.id] || INITIAL_RATING
 
-      // Calculate new ratings
       const { winnerNewRating, loserNewRating } = updateEloRatings(
         winnerRating, 
         loserRating
       )
 
+      // Get current votes from Firebase
+      const votesRef = ref(db, 'totalVotes/promptVotes')
+      const snapshot = await get(votesRef)
+      const currentVotes = snapshot.val() || 0
+
       // Prepare updates
       const updates: {[key: string]: number} = {
         [`promptEloRatings/${winnerPrompt.id}`]: winnerNewRating,
         [`promptEloRatings/${loserPrompt.id}`]: loserNewRating,
-        'totalVotes/promptVotes': (totalVotes || 0) + 1
+        'totalVotes/promptVotes': currentVotes + 1
       }
 
-      // Update Firebase
       await update(ref(db), updates)
-
-      // Generate new pair
-      const newPair = getRandomPair()
-      setCurrentPair(newPair)
+      setCurrentPair(getRandomPair())
     } catch (error) {
       console.error('Error updating ratings:', error)
     }
@@ -227,7 +225,6 @@ function PromptCompare() {
             key={prompt.id} 
             className="prompt-card"
             onClick={() => {
-              // Determine winner and loser based on index
               const winnerPrompt = prompt
               const loserPrompt = currentPair[1 - index]
               handleChoice(winnerPrompt, loserPrompt)
