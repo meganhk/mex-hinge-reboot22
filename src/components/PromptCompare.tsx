@@ -3,6 +3,85 @@ import { ref, onValue, update, get } from 'firebase/database'
 import { db } from '../firebase'
 import { Link } from 'react-router-dom'
 import { Prompt } from '../types'
+import { User } from '../types'
+
+const WelcomeModal: React.FC<{ onComplete: (userData: User) => void }> = ({ onComplete }) => {
+  const [userData, setUserData] = React.useState<Partial<User>>({})
+
+  return (
+    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center">
+      <div className="bg-white p-6 rounded-lg max-w-md w-full">
+        <h2 className="text-2xl mb-4">Welcome to Mex's Profile Optimizer!</h2>
+        
+        <form onSubmit={(e) => {
+          e.preventDefault()
+          if (userData.gender && userData.attractedTo?.length) {
+            onComplete({
+              ...userData,
+              id: crypto.randomUUID(),
+              comparisons: 0,
+              lastActive: Date.now()
+            } as User)
+          }
+        }}>
+          <div className="mb-4">
+            <label className="block mb-2">Username (optional)</label>
+            <input
+              type="text"
+              className="w-full p-2 border rounded"
+              onChange={(e) => setUserData(prev => ({...prev, username: e.target.value}))}
+            />
+          </div>
+
+          <div className="mb-4">
+            <label className="block mb-2">Your Gender*</label>
+            <select 
+              required
+              className="w-full p-2 border rounded"
+              onChange={(e) => setUserData(prev => ({...prev, gender: e.target.value as User['gender']}))}
+            >
+              <option value="">Select...</option>
+              <option value="male">Male</option>
+              <option value="female">Female</option>
+              <option value="other">Other</option>
+            </select>
+          </div>
+
+          <div className="mb-4">
+  <label className="block mb-2">Attracted to*</label>
+  <div className="flex flex-col space-y-2">
+    {['men', 'women', 'both'].map(option => (
+      <label key={option} className="inline-flex items-center">
+        <input
+          type="radio"
+          name="attractedTo"  // This groups the radio buttons together
+          className="mr-2"
+          value={option}
+          onChange={(e) => {
+            setUserData(prev => ({
+              ...prev,
+              attractedTo: [e.target.value as 'men' | 'women' | 'both']
+            }))
+          }}
+          required
+        />
+        {option.charAt(0).toUpperCase() + option.slice(1)}
+      </label>
+    ))}
+  </div>
+</div>
+
+          <button
+            type="submit"
+            className="w-full bg-blue-500 text-white p-2 rounded hover:bg-blue-600"
+          >
+            Start Rating
+          </button>
+        </form>
+      </div>
+    </div>
+  )
+}
 
 function PromptCompare() {
   const allPrompts: Prompt[] = [
@@ -233,7 +312,8 @@ function PromptCompare() {
         )}
       </div>
 
-      <h1 className="title">Profile Prompt Optimizer</h1>
+      <h1 className="title">Choose the better prompt</h1>
+      <h2 className="subtitle">Just whatever one you'd actually reply to</h2>
       
       <div className="prompt-grid">
         {currentPair.map((prompt, index) => (

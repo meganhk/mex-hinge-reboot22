@@ -2,11 +2,8 @@ import { BrowserRouter as Router, Routes, Route, Link, Navigate } from 'react-ro
 import PhotoCompare from './components/PhotoCompare'
 import PromptCompare from './components/PromptCompare'
 import Analytics from './components/Analytics'
-import './styles.css';
-
-interface VoteRecord {
-  [key: string]: number;
-}
+import { User, VoteRecord } from './types'
+import './styles.css'
 
 // Helper function to calculate total votes
 const calculateTotalVotes = () => {
@@ -35,7 +32,7 @@ function HomePage() {
     <div className="home-container">
       <div className="text-center max-w-3xl mx-auto px-4">
         <h1 className="text-4xl md:text-6xl font-bold mb-4">
-        Mex is (unfortunately) considering downloading Hinge (again).
+          Mex is (unfortunately) considering downloading Hinge (again).
         </h1>
         
         <p className="text-xl md:text-2xl text-gray-600 mb-12">
