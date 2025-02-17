@@ -1,10 +1,80 @@
-import React from 'react'
+import React, { useState, useEffect } from 'react'
 import { ref, onValue, update, get } from 'firebase/database'
 import { db } from '../firebase'
 import { Link } from 'react-router-dom'
-import { Photo } from '../types'
+import { Photo, User } from '../types'
+
+interface WelcomeModalProps {
+  onComplete: (userData: User) => void;
+}
+
+function WelcomeModal({ onComplete }: WelcomeModalProps) {
+  const [userData, setUserData] = useState<Partial<User>>({})
+
+  return (
+    <div className="modal-overlay">
+      <div className="modal-content">
+        <h2>Welcome to Mex's Profile Optimizer!</h2>
+        
+        <form onSubmit={(e) => {
+          e.preventDefault()
+          onComplete({
+            ...userData,
+            id: crypto.randomUUID(),
+            comparisons: 0,
+            lastActive: Date.now()
+          } as User)
+        }}>
+          <div className="form-group">
+            <label>Username (optional)</label>
+            <input
+              type="text"
+              onChange={(e) => setUserData((prev: Partial<User>) => ({...prev, username: e.target.value}))}
+            />
+          </div>
+
+          <div className="form-group">
+            <label>Your Gender</label>
+            <select required onChange={(e) => setUserData((prev: Partial<User>) => ({...prev, gender: e.target.value as User['gender']}))}>
+              <option value="">Select...</option>
+              <option value="male">Male</option>
+              <option value="female">Female</option>
+              <option value="other">Other</option>
+            </select>
+          </div>
+
+          <div className="form-group">
+            <label>Attracted to*</label>
+            <div>
+              {['men', 'women', 'both'].map(option => (
+                <label key={option} className="inline-flex items-center mr-4">
+                  <input
+                    type="radio"
+                    name="attractedTo"  // This groups the radio buttons together
+                    value={option}
+                    onChange={(e) => {
+                      setUserData((prev: Partial<User>) => ({
+                        ...prev,
+                        attractedTo: [e.target.value as 'men' | 'women' | 'both']
+                      }))
+                    }}
+                    required
+                  />
+                  <span className="ml-2 capitalize">{option}</span>
+                </label>
+              ))}
+            </div>
+          </div>
+
+          <button type="submit">Start Rating</button>
+        </form>
+      </div>
+    </div>
+  )
+}
 
 function PhotoCompare() {
+  const [userData, setUserData] = useState<User | null>(null);
   const allPhotos: Photo[] = [
     { id: 1, url: '/IMG_8281.jpeg', description: 'me on bed', type: 'photo' as const },
     { id: 2, url: '/IMG_1229.JPG', description: 'me w/ moet chandon picture', type: 'photo' as const},
@@ -39,12 +109,12 @@ function PhotoCompare() {
   const INITIAL_RATING = 1500
   const K_FACTOR = 32
 
-  const [eloRatings, setEloRatings] = React.useState<{[key: number]: number}>({})
-  const [currentPair, setCurrentPair] = React.useState<Photo[]>([])
-  const [totalVotes, setTotalVotes] = React.useState<number>(0)
+  const [eloRatings, setEloRatings] = useState<{[key: number]: number}>({})
+  const [currentPair, setCurrentPair] = useState<Photo[]>([])
+  const [totalVotes, setTotalVotes] = useState<number>(0)
 
   // Detailed initialization and logging
-  React.useEffect(() => {
+  useEffect(() => {
     const votesRef = ref(db, 'totalVotes')
 
     // Listen to total votes with more detailed logging
@@ -171,6 +241,54 @@ function PhotoCompare() {
     }
   }
 
+  /// Add this useEffect to check for existing user data
+  useEffect(() => {
+    // Create a reference to the users location in your database
+    const userRef = ref(db, 'users');
+    
+    // Get the stored user ID from localStorage (if any)
+    const storedUserId = localStorage.getItem('userId');
+    
+    if (storedUserId) {
+      // If we have a stored user ID, fetch the user data
+      const specificUserRef = ref(db, `users/${storedUserId}`);
+      
+      onValue(specificUserRef, (snapshot) => {
+        const data = snapshot.val();
+        if (data) {
+          setUserData(data);
+        }
+      });
+    }
+  }, []);
+
+  const handleWelcomeComplete = async (newUserData: User) => {
+    try {
+      // Create a reference to this specific user's location in the database
+      const userRef = ref(db, `users/${newUserData.id}`);
+      
+      // Save the user data to Firebase
+      await update(ref(db), {
+        [`users/${newUserData.id}`]: newUserData
+      });
+      
+      // Store the user ID in localStorage for future sessions
+      localStorage.setItem('userId', newUserData.id);
+      
+      // Update local state
+      setUserData(newUserData);
+      
+    } catch (error) {
+      console.error('Error saving user data:', error);
+      // You might want to show an error message to the user here
+    }
+  };
+
+  // Show welcome modal if no user data
+  if (!userData) {
+    return <WelcomeModal onComplete={handleWelcomeComplete} />;
+  }
+
   // If no current pair, show loading
   if (currentPair.length === 0) {
     return <div>Loading...</div>
@@ -187,7 +305,8 @@ function PhotoCompare() {
         )}
       </div>
 
-      <h1 className="title">Profile Photo Optimizer</h1>
+      <h1 className="title">Choose the better photo</h1>
+      <h2 className="subtitle">I'm looking for literally anything from fwbs to an actual #lockedin relationship so... think hot but not slutty, wifey but yk, not easy, someone you'd actually swipe on idk.</h2>
       
       <div className="photo-grid">
         {currentPair.map((photo, index) => (

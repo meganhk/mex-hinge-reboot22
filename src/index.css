@@ -385,3 +385,9 @@
   font-size: 16px;
   min-width: 180px;
 }
+
+.user-info {
+  text-align: center;
+  margin-bottom: 20px;
+  color: #444;
+}
