@@ -4,8 +4,9 @@ import PromptCompare from './components/PromptCompare'
 import Analytics from './components/Analytics'
 import { User, VoteRecord } from './types'
 import './styles.css'
+import Contributors from './components/Contributors'
 
-// Helper function to calculate total votes
+
 const calculateTotalVotes = () => {
   const photoVotes = JSON.parse(localStorage.getItem('photoVotes') || '{}') as VoteRecord
   const promptVotes = JSON.parse(localStorage.getItem('promptVotes') || '{}') as VoteRecord
@@ -14,7 +15,6 @@ const calculateTotalVotes = () => {
          Object.values(promptVotes).reduce((a: number, b: number) => a + b, 0)
 }
 
-// Protected route component
 function ProtectedAnalytics() {
   const totalVotes = calculateTotalVotes()
 
@@ -47,6 +47,9 @@ function HomePage() {
             <Link to="/prompt-compare" className="main-button">
               Compare Prompts
             </Link>
+            <Link to="/contributors" className="main-button">
+              Leaderboard
+            </Link>
           </div>
           
           {totalVotes >= 10 ? (
@@ -58,6 +61,7 @@ function HomePage() {
               Make {10 - totalVotes} more comparisons to unlock analytics
             </div>
           )}
+
         </div>
       </div>
     </div>
@@ -72,6 +76,7 @@ function App() {
         <Route path="/photo-compare" element={<PhotoCompare />} />
         <Route path="/prompt-compare" element={<PromptCompare />} />
         <Route path="/analytics" element={<ProtectedAnalytics />} />
+        <Route path="/contributors" element={<Contributors />} />
       </Routes>
     </Router>
   )

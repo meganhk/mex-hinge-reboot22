@@ -5,7 +5,7 @@ import { getAnalytics } from "firebase/analytics";
 const firebaseConfig = {
     apiKey: "AIzaSyDk_hfcU9hwgszNJUsepULn1xg0EhEMZgQ",
     authDomain: "mex-hinge-reboot.firebaseapp.com",
-    databaseURL: "https://mex-hinge-reboot-default-rtdb.firebaseio.com", // Add this line
+    databaseURL: "https://mex-hinge-reboot-default-rtdb.firebaseio.com", 
     projectId: "mex-hinge-reboot",
     storageBucket: "mex-hinge-reboot.firebasestorage.app",
     messagingSenderId: "37494493409",

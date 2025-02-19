@@ -1,45 +1,42 @@
-import React from 'react'
+import React, { useState, useEffect } from 'react'
 import { ref, onValue, update, get } from 'firebase/database'
 import { db } from '../firebase'
 import { Link } from 'react-router-dom'
 import { Prompt } from '../types'
 import { User } from '../types'
 
-const WelcomeModal: React.FC<{ onComplete: (userData: User) => void }> = ({ onComplete }) => {
-  const [userData, setUserData] = React.useState<Partial<User>>({})
+interface WelcomeModalProps {
+  onComplete: (userData: User) => void;
+}
+
+function WelcomeModal({ onComplete }: WelcomeModalProps) {
+  const [userData, setUserData] = useState<Partial<User>>({})
 
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center">
-      <div className="bg-white p-6 rounded-lg max-w-md w-full">
-        <h2 className="text-2xl mb-4">Welcome to Mex's Profile Optimizer!</h2>
+    <div className="modal-overlay">
+      <div className="modal-content">
+        <h2>Welcome to Mex's Profile Optimizer!</h2>
         
         <form onSubmit={(e) => {
           e.preventDefault()
-          if (userData.gender && userData.attractedTo?.length) {
-            onComplete({
-              ...userData,
-              id: crypto.randomUUID(),
-              comparisons: 0,
-              lastActive: Date.now()
-            } as User)
-          }
+          onComplete({
+            ...userData,
+            id: crypto.randomUUID(),
+            comparisons: 0,
+            lastActive: Date.now()
+          } as User)
         }}>
-          <div className="mb-4">
-            <label className="block mb-2">Username (optional)</label>
+          <div className="form-group">
+            <label>Username (optional)</label>
             <input
               type="text"
-              className="w-full p-2 border rounded"
-              onChange={(e) => setUserData(prev => ({...prev, username: e.target.value}))}
+              onChange={(e) => setUserData((prev: Partial<User>) => ({...prev, username: e.target.value}))}
             />
           </div>
 
-          <div className="mb-4">
-            <label className="block mb-2">Your Gender*</label>
-            <select 
-              required
-              className="w-full p-2 border rounded"
-              onChange={(e) => setUserData(prev => ({...prev, gender: e.target.value as User['gender']}))}
-            >
+          <div className="form-group">
+            <label>Your Gender</label>
+            <select required onChange={(e) => setUserData((prev: Partial<User>) => ({...prev, gender: e.target.value as User['gender']}))}>
               <option value="">Select...</option>
               <option value="male">Male</option>
               <option value="female">Female</option>
@@ -47,36 +44,30 @@ const WelcomeModal: React.FC<{ onComplete: (userData: User) => void }> = ({ onCo
             </select>
           </div>
 
-          <div className="mb-4">
-  <label className="block mb-2">Attracted to*</label>
-  <div className="flex flex-col space-y-2">
-    {['men', 'women', 'both'].map(option => (
-      <label key={option} className="inline-flex items-center">
-        <input
-          type="radio"
-          name="attractedTo"  // This groups the radio buttons together
-          className="mr-2"
-          value={option}
-          onChange={(e) => {
-            setUserData(prev => ({
-              ...prev,
-              attractedTo: [e.target.value as 'men' | 'women' | 'both']
-            }))
-          }}
-          required
-        />
-        {option.charAt(0).toUpperCase() + option.slice(1)}
-      </label>
-    ))}
-  </div>
-</div>
+          <div className="form-group">
+            <label>Attracted to*</label>
+            <div>
+              {['men', 'women', 'both'].map(option => (
+                <label key={option} className="inline-flex items-center mr-4">
+                  <input
+                    type="radio"
+                    name="attractedTo"  // This groups the radio buttons together
+                    value={option}
+                    onChange={(e) => {
+                      setUserData((prev: Partial<User>) => ({
+                        ...prev,
+                        attractedTo: [e.target.value as 'men' | 'women' | 'both']
+                      }))
+                    }}
+                    required
+                  />
+                  <span className="ml-2 capitalize">{option}</span>
+                </label>
+              ))}
+            </div>
+          </div>
 
-          <button
-            type="submit"
-            className="w-full bg-blue-500 text-white p-2 rounded hover:bg-blue-600"
-          >
-            Start Rating
-          </button>
+          <button type="submit">Start Rating</button>
         </form>
       </div>
     </div>
@@ -84,6 +75,7 @@ const WelcomeModal: React.FC<{ onComplete: (userData: User) => void }> = ({ onCo
 }
 
 function PromptCompare() {
+  const [userData, setUserData] = useState<User | null>(null);
   const allPrompts: Prompt[] = [
     { 
       id: 1, 
@@ -296,9 +288,53 @@ function PromptCompare() {
     }
   }
 
-  // If no current pair, show loading
-  if (currentPair.length === 0) {
-    return <div>Loading...</div>
+
+  /// Add this useEffect to check for existing user data
+  useEffect(() => {
+    // Create a reference to the users location in your database
+    const userRef = ref(db, 'users');
+    
+    // Get the stored user ID from localStorage (if any)
+    const storedUserId = localStorage.getItem('userId');
+    
+    if (storedUserId) {
+      // If we have a stored user ID, fetch the user data
+      const specificUserRef = ref(db, `users/${storedUserId}`);
+      
+      onValue(specificUserRef, (snapshot) => {
+        const data = snapshot.val();
+        if (data) {
+          setUserData(data);
+        }
+      });
+    }
+  }, []);
+
+  const handleWelcomeComplete = async (newUserData: User) => {
+    try {
+      // Create a reference to this specific user's location in the database
+      const userRef = ref(db, `users/${newUserData.id}`);
+      
+      // Save the user data to Firebase
+      await update(ref(db), {
+        [`users/${newUserData.id}`]: newUserData
+      });
+      
+      // Store the user ID in localStorage for future sessions
+      localStorage.setItem('userId', newUserData.id);
+      
+      // Update local state
+      setUserData(newUserData);
+      
+    } catch (error) {
+      console.error('Error saving user data:', error);
+      // You might want to show an error message to the user here
+    }
+  };
+
+  // Show welcome modal if no user data
+  if (!userData) {
+    return <WelcomeModal onComplete={handleWelcomeComplete} />;
   }
 
   return (
