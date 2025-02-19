@@ -3,8 +3,7 @@ import PhotoCompare from './components/PhotoCompare'
 import PromptCompare from './components/PromptCompare'
 import Analytics from './components/Analytics'
 import { User, VoteRecord } from './types'
-import './styles.css'
-import Contributors from './components/Contributors'
+import Contributors from './components/Contributors.tsx'
 
 
 const calculateTotalVotes = () => {
@@ -38,31 +37,29 @@ function HomePage() {
         <p className="text-xl md:text-2xl text-gray-600 mb-12">
           Wanna help her set up a profile?
         </p>
+        <div className="flex flex-wrap gap-4 justify-center">
+  <Link to="/photo-compare" className="main-button">
+    Compare Photos
+  </Link>
+  <Link to="/prompt-compare" className="main-button">
+    Compare Prompts
+  </Link>
+  
+  {totalVotes >= 10 ? (
+    <Link to="/analytics" className="main-button">
+      View Analytics
+    </Link>
+  ) : (
+    <div className="votes-needed">
+      Make {10 - totalVotes} more comparisons to unlock analytics
+    </div>
+  )}
+</div>
 
-        <div className="flex flex-col md:flex-row gap-4 justify-center">
-          <div className="flex gap-4">
-            <Link to="/photo-compare" className="main-button">
-              Compare Photos
-            </Link>
-            <Link to="/prompt-compare" className="main-button">
-              Compare Prompts
-            </Link>
-            <Link to="/contributors" className="main-button">
-              Leaderboard
-            </Link>
-          </div>
-          
-          {totalVotes >= 10 ? (
-            <Link to="/analytics" className="main-button">
-              View Analytics
-            </Link>
-          ) : (
-            <div className="votes-needed">
-              Make {10 - totalVotes} more comparisons to unlock analytics
-            </div>
-          )}
-
-        </div>
+<Link to="/contributors"className="main-button">
+    Leaderboard
+  </Link>
+        
       </div>
     </div>
   )

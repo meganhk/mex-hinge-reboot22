@@ -163,7 +163,6 @@ function PromptCompare() {
       },
   ]
 
-  // Elo rating constants
   const K_FACTOR = 32
   const INITIAL_RATING = 1500
 
@@ -171,7 +170,6 @@ function PromptCompare() {
   const [currentPair, setCurrentPair] = React.useState<Prompt[]>([])
   const [totalVotes, setTotalVotes] = React.useState(0)
 
-  // Load existing Elo ratings from Firebase on component mount
  React.useEffect(() => {
      const votesRef = ref(db, 'totalVotes')
  
@@ -269,12 +267,10 @@ function PromptCompare() {
         loserRating
       )
 
-      // Get current votes from Firebase
       const votesRef = ref(db, 'totalVotes/promptVotes')
       const snapshot = await get(votesRef)
       const currentVotes = snapshot.val() || 0
 
-      // Prepare updates
       const updates: {[key: string]: number} = {
         [`promptEloRatings/${winnerPrompt.id}`]: winnerNewRating,
         [`promptEloRatings/${loserPrompt.id}`]: loserNewRating,
@@ -288,17 +284,14 @@ function PromptCompare() {
     }
   }
 
-
-  /// Add this useEffect to check for existing user data
   useEffect(() => {
-    // Create a reference to the users location in your database
+
     const userRef = ref(db, 'users');
     
-    // Get the stored user ID from localStorage (if any)
     const storedUserId = localStorage.getItem('userId');
     
     if (storedUserId) {
-      // If we have a stored user ID, fetch the user data
+
       const specificUserRef = ref(db, `users/${storedUserId}`);
       
       onValue(specificUserRef, (snapshot) => {
@@ -312,27 +305,21 @@ function PromptCompare() {
 
   const handleWelcomeComplete = async (newUserData: User) => {
     try {
-      // Create a reference to this specific user's location in the database
       const userRef = ref(db, `users/${newUserData.id}`);
       
-      // Save the user data to Firebase
       await update(ref(db), {
         [`users/${newUserData.id}`]: newUserData
       });
       
-      // Store the user ID in localStorage for future sessions
       localStorage.setItem('userId', newUserData.id);
       
-      // Update local state
       setUserData(newUserData);
       
     } catch (error) {
       console.error('Error saving user data:', error);
-      // You might want to show an error message to the user here
     }
   };
 
-  // Show welcome modal if no user data
   if (!userData) {
     return <WelcomeModal onComplete={handleWelcomeComplete} />;
   }

@@ -1,7 +1,6 @@
 import React, { useState, useEffect } from 'react'
 import { ref, onValue } from 'firebase/database'
 import { db } from '../firebase'
-import { Link } from 'react-router-dom'
 import { User } from '../types'
 
 function Contributors() {
@@ -13,7 +12,6 @@ function Contributors() {
     const unsubscribe = onValue(usersRef, (snapshot) => {
       const data = snapshot.val()
       if (data) {
-        // Convert object to array and sort by comparisons
         const userArray = Object.values(data) as User[]
         const sortedUsers = userArray.sort((a, b) => b.comparisons - a.comparisons)
         setUsers(sortedUsers)
@@ -29,51 +27,53 @@ function Contributors() {
   }
 
   return (
-    <div className="container mx-auto px-4 py-8">
-      <div className="flex justify-between items-center mb-8">
-        <h1 className="text-3xl font-bold">Top Contributors</h1>
-        <Link to="/" className="nav-button">
+    <div className="bg-fixed min-h-screen h-full bg-[linear-gradient(180deg,transparent_70%,#FFFFFF_70%,#FCFCFC_85%,#EFEFEF_100%)]">
+      <div className="z-50 font-sans text-sm sm:text-base absolute top-0 w-full flex flex-row justify-between p-5">
+        <a href="/" className="nav-button hover:bg-[#bd87c4] transition-colors duration-200">
           Home
-        </Link>
+        </a>
       </div>
 
-      <div className="bg-white rounded-lg shadow overflow-hidden">
-        <table className="min-w-full">
-          <thead className="bg-gray-50">
-            <tr>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                Rank
-              </th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                Username
-              </th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                Comparisons
-              </th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                Demographics
-              </th>
-            </tr>
-          </thead>
-          <tbody className="bg-white divide-y divide-gray-200">
-            {users.map((user, index) => (
-              <tr key={user.id} className={index % 2 === 0 ? 'bg-white' : 'bg-gray-50'}>
-                <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
-                  {index + 1}
-                </td>
-                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                  {user.username || 'Anonymous'}
-                </td>
-                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                  {user.comparisons}
-                </td>
-                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                  {user.gender}, attracted to {user.attractedTo.join(', ')}
-                </td>
+      <div className="text-center relative mx-auto flex max-w-2xl flex-col gap-0 overflow-visible sm:p-4 pt-32">
+        <div className="mt-16 h-20">
+          <h1 className="text-5xl font-bold">
+            Top Contributors
+          </h1>
+        </div>
+
+        <div className="relative mx-auto w-full max-w bg-white rounded-lg shadow-md mx-4">
+          <table className="w-full border-collapse">
+            <thead>
+              <tr className="border-b border-gray-200 bg-gray-50">
+                <th className="w-16 py-3 px-4 text-left text-sm font-semibold text-gray-600 pl-4">#</th>
+                <th className="w-full py-3 px-4 text-center text-sm font-semibold text-gray-600">Username</th>
+                <th className="w-32 py-3 px-4 text-right text-sm font-semibold text-gray-600 pr-4">Score</th>
               </tr>
-            ))}
-          </tbody>
-        </table>
+            </thead>
+            <tbody>
+              {users.map((user, index) => (
+                <tr 
+                  key={user.id}
+                  className="border-b border-gray-200 hover:bg-yellow-50 transition-colors duration-150"
+                >
+                  <td className="py-3 px-4 text-sm text-gray-500 pl-4">
+                    {index + 1}
+                  </td>
+                  <td className="py-3 px-4 text-sm font-medium text-center">
+                    {user.username || 'Anonymous'}
+                  </td>
+                  <td className="py-3 px-4 text-right text-sm text-gray-500 pr-4">
+                    {user.comparisons}
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+
+        <div className="w-full pb-2 pt-8 text-center text-xs sm:text-sm text-gray-500">
+          Last updated: {new Date().toLocaleString()}
+        </div>
       </div>
     </div>
   )

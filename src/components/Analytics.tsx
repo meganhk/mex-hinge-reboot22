@@ -13,7 +13,7 @@ function Analytics() {
     { id: 1, url: '/IMG_8281.jpeg', description: 'me on bed', type: 'photo' as const },
     { id: 2, url: '/IMG_1229.JPG', description: 'me w/ moet chandon picture', type: 'photo' as const},
     { id: 3, url: '/IMG_1348.jpeg', description: 'me running', type: 'photo' as const },
-    { id: 4, url: '/IMG_5093.jpeg', description: 'me before heaven by james', type: 'photo' as const },
+    { id: 4, url: '/IMG_4873.jpeg', description: 'me w/ hlab friendos in asakusa', type: 'photo' as const  },
     { id: 5, url: '/IMG_5358.JPG', description: 'me with eiffel tower' , type: 'photo' as const},
     { id: 6, url: '/IMG_6467.jpeg', description: 'me with computer selfie',   type: 'photo' as const},
     { id: 7, url: '/IMG_6474.jpeg', description: 'me with computer selfie but sexier' , type: 'photo' as const},
@@ -36,7 +36,6 @@ function Analytics() {
     { id: 24, url: '/IMG_0169.jpeg', description: 'me w/ dan mirror smiley', type: 'photo' as const  },
     { id: 25, url: '/IMG_0188.jpeg', description: 'me w/ dan mirror schmexie', type: 'photo' as const },
     { id: 26, url: '/IMG_5104.jpeg', description: 'me w/ joss before heaven', type: 'photo' as const  },
-    { id: 27, url: '/IMG_4873.jpeg', description: 'me w/ hlab friendos in asakusa', type: 'photo' as const  },
   ]
 
   const allPrompts: Prompt[] = [
