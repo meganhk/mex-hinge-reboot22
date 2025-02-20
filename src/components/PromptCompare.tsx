@@ -282,29 +282,60 @@ function PromptCompare() {
   }
 
   const handleChoice = async (winnerPrompt: Prompt, loserPrompt: Prompt): Promise<void> => {
+    // Early return if no user data
+    if (!userData) {
+      console.error('No user data available')
+      return
+    }
+  
     try {
       const winnerRating = eloRatings[winnerPrompt.id] || INITIAL_RATING
       const loserRating = eloRatings[loserPrompt.id] || INITIAL_RATING
-
+  
       const { winnerNewRating, loserNewRating } = updateEloRatings(
         winnerRating, 
         loserRating
       )
-
+  
+      // Create a new comparison object
+      const comparison = {
+        timestamp: Date.now(),
+        winner: winnerPrompt.id,
+        loser: loserPrompt.id,
+        winnerQuestion: winnerPrompt.question,
+        winnerAnswer: winnerPrompt.answer,
+        loserQuestion: loserPrompt.question,
+        loserAnswer: loserPrompt.answer
+      }
+  
+      // Update user's prompt comparisons count and add new comparison to their history
+      const userRef = ref(db, `users/${userData.id}`)
+      const userSnapshot = await get(userRef)
+      const currentUserData = userSnapshot.val()
+      
+      const updatedPromptComparisons = (currentUserData?.promptComparisons || 0) + 1
+      const promptComparisonsHistory = currentUserData?.promptComparisonsHistory || []
+      promptComparisonsHistory.push(comparison)
+  
+      // Get current votes
       const votesRef = ref(db, 'totalVotes/promptVotes')
       const snapshot = await get(votesRef)
       const currentVotes = snapshot.val() || 0
-
-      const updates: {[key: string]: number} = {
+  
+      // Prepare all updates
+      const updates: {[key: string]: any} = {
         [`promptEloRatings/${winnerPrompt.id}`]: winnerNewRating,
         [`promptEloRatings/${loserPrompt.id}`]: loserNewRating,
-        'totalVotes/promptVotes': currentVotes + 1
+        'totalVotes/promptVotes': currentVotes + 1,
+        [`users/${userData.id}/promptComparisons`]: updatedPromptComparisons,
+        [`users/${userData.id}/promptComparisonsHistory`]: promptComparisonsHistory,
+        [`users/${userData.id}/lastActive`]: Date.now()
       }
-
+  
       await update(ref(db), updates)
       setCurrentPair(getRandomPair())
     } catch (error) {
-      console.error('Error updating ratings:', error)
+      console.error('Error updating ratings and user data:', error)
     }
   }
 

@@ -223,46 +223,70 @@ function PhotoCompare() {
     return [first, second]
   }
 
-  // Handle photo selection
   const handleChoice = async (winnerPhoto: Photo, loserPhoto: Photo): Promise<void> => {
+    // Early return if no user data
+    if (!userData) {
+      console.error('No user data available')
+      return
+    }
+  
     try {
       // Get current votes
       const votesRef = ref(db, 'totalVotes')
       const votesSnapshot = await get(votesRef)
       const currentVotes = votesSnapshot.val() || { photoVotes: 0, promptVotes: 0 }
       
-      console.log('Current votes before update:', currentVotes)
-
       // Get current ratings
       const winnerRating = eloRatings[winnerPhoto.id] || INITIAL_RATING
       const loserRating = eloRatings[loserPhoto.id] || INITIAL_RATING
-
+  
       // Calculate new ratings
       const { winnerNewRating, loserNewRating } = updateEloRatings(
         winnerRating, 
         loserRating
       )
-
-      // Prepare updates
-      const updates: {[key: string]: number} = {
+  
+      // Create a new comparison object
+      const comparison = {
+        timestamp: Date.now(),
+        winner: winnerPhoto.id,
+        loser: loserPhoto.id,
+        winnerUrl: winnerPhoto.url,
+        loserUrl: loserPhoto.url
+      }
+  
+      // Update user's comparisons count and add new comparison to their history
+      const userRef = ref(db, `users/${userData.id}`)
+      const userSnapshot = await get(userRef)
+      const currentUserData = userSnapshot.val()
+      
+      const updatedComparisons = (currentUserData?.comparisons || 0) + 1
+      const comparisonsHistory = currentUserData?.comparisonsHistory || []
+      comparisonsHistory.push(comparison)
+  
+      // Prepare all updates
+      const updates: {[key: string]: any} = {
         [`photoEloRatings/${winnerPhoto.id}`]: winnerNewRating,
         [`photoEloRatings/${loserPhoto.id}`]: loserNewRating,
-        'totalVotes/photoVotes': (currentVotes.photoVotes || 0) + 1
+        'totalVotes/photoVotes': (currentVotes.photoVotes || 0) + 1,
+        [`users/${userData.id}/comparisons`]: updatedComparisons,
+        [`users/${userData.id}/comparisonsHistory`]: comparisonsHistory,
+        [`users/${userData.id}/lastActive`]: Date.now()
       }
-
-      console.log('Prepared updates:', updates)
-
+  
+      console.log('Preparing to update with:', updates)
+  
       // Update Firebase
       await update(ref(db), updates)
-
+  
       // Generate new pair
       const newPair = getRandomPair()
       setCurrentPair(newPair)
     } catch (error) {
-      console.error('Error updating ratings:', error)
+      console.error('Error updating ratings and user data:', error)
     }
   }
-
+  
   /// Add this useEffect to check for existing user data
   useEffect(() => {
     // Create a reference to the users location in your database
