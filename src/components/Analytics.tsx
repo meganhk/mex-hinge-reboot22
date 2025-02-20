@@ -1,11 +1,17 @@
-import React, { useState, useEffect } from 'react'
-import { ref, onValue, push, set, update } from 'firebase/database'
-import { db } from '../firebase'
-import { Link } from 'react-router-dom'
-import { Photo, Prompt } from '../types'
+import React, { useState, useEffect } from 'react';
+import { ref, onValue, push, set, update } from 'firebase/database';
+import { db } from '../firebase';
+import { Link } from 'react-router-dom';
+import { Photo, Prompt } from '../types';
 
 interface EloRatings {
   [key: number]: number;
+}
+
+interface FormData {
+  name: string;
+  contact: string;
+  message: string;
 }
 
 function Analytics() {
@@ -36,7 +42,7 @@ function Analytics() {
     { id: 24, url: '/IMG_0169.jpeg', description: 'me w/ dan mirror smiley', type: 'photo' as const  },
     { id: 25, url: '/IMG_0188.jpeg', description: 'me w/ dan mirror schmexie', type: 'photo' as const },
     { id: 26, url: '/IMG_5104.jpeg', description: 'me w/ joss before heaven', type: 'photo' as const  },
-  ]
+  ];
 
   const allPrompts: Prompt[] = [
     { 
@@ -123,24 +129,23 @@ function Analytics() {
         answer: "Favourite biscuit. Also, are jaffa cakes cakes, or biscuits?",
         type: 'prompt' as const
       },
-  ]
+  ];
 
   // Elo rating constants
-  const K_FACTOR = 32
-  const INITIAL_RATING = 1500
+  const K_FACTOR = 32;
+  const INITIAL_RATING = 1500;
 
-  const [showBest, setShowBest] = useState<boolean>(true)
-  const [showForm, setShowForm] = useState<boolean>(false)
-  const [selectedItem, setSelectedItem] = useState<Photo | Prompt | null>(null)
-  const [photoEloRatings, setPhotoEloRatings] = useState<EloRatings>({})
-  const [promptEloRatings, setPromptEloRatings] = useState<EloRatings>({})
-  const [formData, setFormData] = useState({
+  const [showBest, setShowBest] = useState<boolean>(true);
+  const [showForm, setShowForm] = useState<boolean>(false);
+  const [selectedItem, setSelectedItem] = useState<Photo | Prompt | null>(null);
+  const [photoEloRatings, setPhotoEloRatings] = useState<EloRatings>({});
+  const [promptEloRatings, setPromptEloRatings] = useState<EloRatings>({});
+  const [formData, setFormData] = useState<FormData>({
     name: '',
     contact: '',
     message: ''
-  })
+  });
 
-  // Load existing Elo ratings from Firebase on component mount
   useEffect(() => {
     // Listen to photo Elo ratings
     const photoRatingsRef = ref(db, 'photoEloRatings')
@@ -232,26 +237,24 @@ function Analytics() {
     setShowForm(true)
   }
 
-  // Submit form and save interaction
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>): Promise<void> => {
-    e.preventDefault()
+    e.preventDefault();
     
     if (selectedItem) {
-      // Save interaction to Firebase
-      const interactionsRef = ref(db, 'interactions')
-      const newInteractionRef = push(interactionsRef)
+      const interactionsRef = ref(db, 'interactions');
+      const newInteractionRef = push(interactionsRef);
       await set(newInteractionRef, {
         timestamp: Date.now(),
         itemId: selectedItem.id,
         itemType: selectedItem.type,
         ...formData
-      })
+      });
     }
   
-    setFormData({ name: '', contact: '', message: '' })
-    setShowForm(false)
-    setSelectedItem(null)
-  }
+    setFormData({ name: '', contact: '', message: '' });
+    setShowForm(false);
+    setSelectedItem(null);
+  };
 
   // Function to simulate an Elo rating update when an item is "liked"
   const handleEloUpdate = async (item: Photo | Prompt) => {
@@ -281,7 +284,6 @@ function Analytics() {
     // Update Firebase
     await update(ref(db), updates)
   }
-
   return (
     <div className="container">
       <div className="nav-buttons">
@@ -307,93 +309,106 @@ function Analytics() {
 
       <div className="profile-layout">
         {profileLayout.map((item, idx) => (
-          <div key={idx} className={`profile-item ${item.type}`}>
-            {item.type === 'photo' ? (
-              <div className="photo-card analytics">
-                <div className="photo-wrapper">
-                  <img 
-                    src={sortedPhotos[item.index].url} 
-                    alt={sortedPhotos[item.index].description} 
+          <div key={idx} className="profile-item-container">
+            <div className={`profile-item ${item.type}`}>
+              {item.type === 'photo' ? (
+                <div className="photo-card analytics">
+                  <div className="photo-wrapper">
+                    <img 
+                      src={sortedPhotos[item.index].url} 
+                      alt={sortedPhotos[item.index].description} 
+                    />
+                  </div>
+                  <button 
+                    className="like-button"
+                    onClick={() => {
+                      handleInteraction(sortedPhotos[item.index]);
+                      handleEloUpdate(sortedPhotos[item.index]);
+                    }}
+                  >
+                    ♡
+                  </button>
+                </div>
+              ) : (
+                <div className="prompt-card analytics">
+                  <div className="prompt-content">
+                    <h3 className="prompt-question">{sortedPrompts[item.index].question}</h3>
+                    <p className="prompt-answer">{sortedPrompts[item.index].answer}</p>
+                  </div>
+                  <button 
+                    className="like-button"
+                    onClick={() => {
+                      handleInteraction(sortedPrompts[item.index]);
+                      handleEloUpdate(sortedPrompts[item.index]);
+                    }}
+                  >
+                    ♡
+                  </button>
+                </div>
+              )}
+            </div>
+            
+            {/* Inline form that appears below the selected item */}
+            {selectedItem && 
+             ((item.type === 'photo' && selectedItem.id === sortedPhotos[item.index].id) || 
+              (item.type === 'prompt' && selectedItem.id === sortedPrompts[item.index].id)) && (
+              <div className="mt-4 p-4 bg-white rounded-lg shadow">
+                <form onSubmit={handleSubmit} className="space-y-4">
+                  <input
+                    type="text"
+                    placeholder="Your name"
+                    value={formData.name}
+                    onChange={(e: React.ChangeEvent<HTMLInputElement>) => 
+                      setFormData({...formData, name: e.target.value})}
+                    className="w-full p-3 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    required
                   />
-                </div>
-                <button 
-                  className="like-button"
-                  onClick={() => {
-                    handleInteraction(sortedPhotos[item.index])
-                    handleEloUpdate(sortedPhotos[item.index])
-                  }}
-                >
-                  ♡
-                </button>
-              </div>
-            ) : (
-              <div className="prompt-card analytics">
-                <div className="prompt-content">
-                  <h3 className="prompt-question">{sortedPrompts[item.index].question}</h3>
-                  <p className="prompt-answer">{sortedPrompts[item.index].answer}</p>
-                </div>
-                <button 
-                  className="like-button"
-                  onClick={() => {
-                    handleInteraction(sortedPrompts[item.index])
-                    handleEloUpdate(sortedPrompts[item.index])
-                  }}
-                >
-                  ♡
-                </button>
+                  
+                  <input
+                    type="text"
+                    placeholder="Your contact info"
+                    value={formData.contact}
+                    onChange={(e: React.ChangeEvent<HTMLInputElement>) => 
+                      setFormData({...formData, contact: e.target.value})}
+                    className="w-full p-3 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    required
+                  />
+                  
+                  <textarea
+                    placeholder="Type a message..."
+                    value={formData.message}
+                    onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => 
+                      setFormData({...formData, message: e.target.value})}
+                    className="w-full p-3 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500 min-h-[100px]"
+                    required
+                  />
+
+                  <div className="flex gap-3">
+                    <button
+                      type="submit"
+                      className="nav-button"
+                    >
+                      Start a chat
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setShowForm(false);
+                        setSelectedItem(null);
+                      }}
+                      className="flex-1 bg-gray-200 text-gray-800 py-3 px-6 rounded-lg hover:bg-gray-300 transition-colors"
+                    >
+                      Cancel
+                    </button>
+                  </div>
+                </form>
               </div>
             )}
           </div>
         ))}
       </div>
-
-      {showForm && (
-        <div className="interaction-overlay">
-          <div className="interaction-form">
-            <h3>Send a Like or Comment</h3>
-            <form onSubmit={handleSubmit}>
-              <div className="form-group">
-                <label>Your Name</label>
-                <input
-                  type="text"
-                  value={formData.name}
-                  onChange={(e) => setFormData({...formData, name: e.target.value})}
-                  required
-                />
-              </div>
-              <div className="form-group">
-                <label>Instagram Handle or Phone Number</label>
-                <input
-                  type="text"
-                  value={formData.contact}
-                  onChange={(e) => setFormData({...formData, contact: e.target.value})}
-                  required
-                />
-              </div>
-              <div className="form-group">
-                <label>Your Message</label>
-                <textarea
-                  value={formData.message}
-                  onChange={(e) => setFormData({...formData, message: e.target.value})}
-                  required
-                />
-              </div>
-              <div className="form-buttons">
-                <button type="submit" className="submit-button">Send</button>
-                <button 
-                  type="button" 
-                  className="cancel-button"
-                  onClick={() => setShowForm(false)}
-                >
-                  Cancel
-                </button>
-              </div>
-            </form>
-          </div>
-        </div>
-      )}
     </div>
-  )
+  );
 }
 
-export default Analytics
+export default Analytics;

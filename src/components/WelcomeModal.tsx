@@ -22,7 +22,7 @@ function WelcomeModal({ onComplete }: WelcomeModalProps) {
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center">
       <div className="bg-white rounded-lg p-8 max-w-md w-full">
-        <h2 className="text-2xl font-bold mb-6">Welcome to Mex's Profile Optimizer!</h2>
+        <h2 className="text-2xl font-bold mb-6">Create a profile :DD</h2>
         
         <form onSubmit={(e) => {
           e.preventDefault()
