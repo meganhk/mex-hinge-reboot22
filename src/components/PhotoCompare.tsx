@@ -139,6 +139,29 @@ function PhotoCompare() {
   useEffect(() => {
     const votesRef = ref(db, 'totalVotes')
 
+    const initializeDatabase = async () => {
+      try {
+        // Create reference to the root
+        const rootRef = ref(db);
+        
+        // Initialize paths with default values if they don't exist
+        const updates: { [key: string]: any } = {
+          'photoEloRatings': {},
+          'promptEloRatings': {},
+          'totalVotes': {
+            photoVotes: 0,
+            promptVotes: 0
+          }
+        };
+  
+        // Update the database
+        await update(rootRef, updates);
+        
+      } catch (error) {
+        console.error('Error initializing database:', error);
+      }
+    };
+
     // Listen to total votes with more detailed logging
     const votesListener = onValue(votesRef, (snapshot) => {
       const data = snapshot.val() || { photoVotes: 0, promptVotes: 0 }
@@ -286,7 +309,7 @@ function PhotoCompare() {
       console.error('Error updating ratings and user data:', error)
     }
   }
-  
+
   /// Add this useEffect to check for existing user data
   useEffect(() => {
     // Create a reference to the users location in your database

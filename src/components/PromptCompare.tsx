@@ -341,6 +341,29 @@ function PromptCompare() {
 
   useEffect(() => {
 
+    const initializeDatabase = async () => {
+      try {
+        // Create reference to the root
+        const rootRef = ref(db);
+        
+        // Initialize paths with default values if they don't exist
+        const updates: { [key: string]: any } = {
+          'photoEloRatings': {},
+          'promptEloRatings': {},
+          'totalVotes': {
+            photoVotes: 0,
+            promptVotes: 0
+          }
+        };
+  
+        // Update the database
+        await update(rootRef, updates);
+        
+      } catch (error) {
+        console.error('Error initializing database:', error);
+      }
+    };
+
     const userRef = ref(db, 'users');
     
     const storedUserId = localStorage.getItem('userId');
