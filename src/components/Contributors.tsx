@@ -47,7 +47,7 @@ function Contributors() {
               <tr className="border-b border-gray-200 bg-gray-50">
                 <th className="w-16 py-3 px-4 text-left text-sm font-semibold text-gray-600 pl-4">#</th>
                 <th className="w-full py-3 px-4 text-center text-sm font-semibold text-gray-600">Username</th>
-                <th className="w-32 py-3 px-4 text-right text-sm font-semibold text-gray-600 pr-4">Score</th>
+                <th className="w-32 py-3 px-4 text-right text-sm font-semibold text-gray-600 pr-4">Number of Comparisons Made</th>
               </tr>
             </thead>
             <tbody>
