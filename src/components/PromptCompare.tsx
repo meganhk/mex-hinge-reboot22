@@ -289,6 +289,17 @@ function PromptCompare() {
     }
   
     try {
+
+ // Get current user data
+      const userRef = ref(db, `users/${userData.id}`);
+      const userSnapshot = await get(userRef);
+      const currentUserData = userSnapshot.val();
+      
+      // Calculate new counts
+      const newComparisons = (currentUserData?.comparisons || 0) + 1;
+      const newPromptComparisons = (currentUserData?.photoComparisons || 0) + 1;
+
+
       const winnerRating = eloRatings[winnerPrompt.id] || INITIAL_RATING
       const loserRating = eloRatings[loserPrompt.id] || INITIAL_RATING
   
@@ -307,15 +318,7 @@ function PromptCompare() {
         loserQuestion: loserPrompt.question,
         loserAnswer: loserPrompt.answer
       }
-  
-      // Update user's prompt comparisons count and add new comparison to their history
-      const userRef = ref(db, `users/${userData.id}`)
-      const userSnapshot = await get(userRef)
-      const currentUserData = userSnapshot.val()
-      
-      const updatedPromptComparisons = (currentUserData?.promptComparisons || 0) + 1
-      const promptComparisonsHistory = currentUserData?.promptComparisonsHistory || []
-      promptComparisonsHistory.push(comparison)
+
   
       // Get current votes
       const votesRef = ref(db, 'totalVotes/promptVotes')
@@ -324,11 +327,15 @@ function PromptCompare() {
   
       // Prepare all updates
       const updates: {[key: string]: any} = {
+        [`users/${userData.id}/comparisons`]: newComparisons,
         [`promptEloRatings/${winnerPrompt.id}`]: winnerNewRating,
         [`promptEloRatings/${loserPrompt.id}`]: loserNewRating,
         'totalVotes/promptVotes': currentVotes + 1,
-        [`users/${userData.id}/promptComparisons`]: updatedPromptComparisons,
-        [`users/${userData.id}/promptComparisonsHistory`]: promptComparisonsHistory,
+        [`users/${userData.id}/promptComparisons`]: newPromptComparisons,
+        [`users/${userData.id}/promptComparisonsHistory`]: [
+          ...(currentUserData?.promptComparisonsHistory || []),
+          comparison
+        ],
         [`users/${userData.id}/lastActive`]: Date.now()
       }
   
@@ -339,40 +346,11 @@ function PromptCompare() {
     }
   }
 
-  useEffect(() => {
-
-    const initializeDatabase = async () => {
-      try {
-        // Create reference to the root
-        const rootRef = ref(db);
-        
-        // Initialize paths with default values if they don't exist
-        const updates: { [key: string]: any } = {
-          'photoEloRatings': {},
-          'promptEloRatings': {},
-          'totalVotes': {
-            photoVotes: 0,
-            promptVotes: 0
-          }
-        };
-  
-        // Update the database
-        await update(rootRef, updates);
-        
-      } catch (error) {
-        console.error('Error initializing database:', error);
-      }
-    };
-
-    const userRef = ref(db, 'users');
-    
+useEffect(() => {
     const storedUserId = localStorage.getItem('userId');
-    
     if (storedUserId) {
-
-      const specificUserRef = ref(db, `users/${storedUserId}`);
-      
-      onValue(specificUserRef, (snapshot) => {
+      const userRef = ref(db, `users/${storedUserId}`);
+      return onValue(userRef, (snapshot) => {
         const data = snapshot.val();
         if (data) {
           setUserData(data);
@@ -380,6 +358,27 @@ function PromptCompare() {
       });
     }
   }, []);
+
+  useEffect(() => {
+    // Listen to Elo ratings
+    const eloRatingsRef = ref(db, 'promptEloRatings');
+    const unsubscribe = onValue(eloRatingsRef, (snapshot) => {
+      const data = snapshot.val() || {};
+      setEloRatings(data);
+    });
+
+    setCurrentPair(getRandomPair());
+
+    return () => unsubscribe();
+  }, []);
+
+  if (!userData) {
+    return <div>Please sign in to continue</div>;
+  }
+
+  if (currentPair.length === 0) {
+    return <div>Loading...</div>;
+  }
 
   const handleWelcomeComplete = async (newUserData: User) => {
     try {
