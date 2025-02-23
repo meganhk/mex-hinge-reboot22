@@ -243,7 +243,7 @@ React.useEffect(() => {
         loserUrl: loserPhoto.url
       };
 
-       const votesRef = ref(db, 'totalVotes/promptVotes')
+       const votesRef = ref(db, 'totalVotes/photoVotes')
             const snapshot = await get(votesRef)
             const currentVotes = snapshot.val() || 0
 
@@ -254,6 +254,7 @@ React.useEffect(() => {
         [`users/${userData.id}/lastActive`]: Date.now(),
         [`photoEloRatings/${winnerPhoto.id}`]: winnerNewRating,
         [`photoEloRatings/${loserPhoto.id}`]: loserNewRating,
+        'totalVotes/photoVotes': currentVotes + 1,
         [`users/${userData.id}/photoComparisonsHistory`]: [
           ...(currentUserData?.photoComparisonsHistory || []),
           comparison
