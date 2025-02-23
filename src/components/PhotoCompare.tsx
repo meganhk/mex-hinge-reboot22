@@ -167,7 +167,7 @@ function PhotoCompare() {
   const handleChoice = async (winnerPhoto: Photo, loserPhoto: Photo): Promise<void> => {
     if (!userData) {
       console.error('No user data available')
-      return;
+      return
     }
 
     try {
@@ -243,10 +243,6 @@ function PhotoCompare() {
 
     return () => unsubscribe();
   }, []);
-
-  if (!userData) {
-    return <div>Please sign in to continue</div>;
-  }
 
   if (currentPair.length === 0) {
     return <div>Loading...</div>;
