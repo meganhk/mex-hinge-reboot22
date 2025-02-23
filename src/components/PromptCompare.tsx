@@ -373,10 +373,6 @@ useEffect(() => {
     return () => unsubscribe();
   }, []);
 
-  if (!userData) {
-    return <div>Please sign in to continue</div>;
-  }
-
   if (currentPair.length === 0) {
     return <div>Loading...</div>;
   }
@@ -438,6 +434,7 @@ useEffect(() => {
       <div style={{ marginTop: '20px', textAlign: 'center' }}>
         Total comparisons performed (by the collective): {totalVotes}
       </div>
+
     </div>
   )
 }

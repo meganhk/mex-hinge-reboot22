@@ -248,6 +248,27 @@ function PhotoCompare() {
     return <div>Loading...</div>;
   }
 
+  const handleWelcomeComplete = async (newUserData: User) => {
+      try {
+        const userRef = ref(db, `users/${newUserData.id}`);
+        
+        await update(ref(db), {
+          [`users/${newUserData.id}`]: newUserData
+        });
+        
+        localStorage.setItem('userId', newUserData.id);
+        
+        setUserData(newUserData);
+        
+      } catch (error) {
+        console.error('Error saving user data:', error);
+      }
+    };
+
+  if (!userData) {
+    return <WelcomeModal onComplete={handleWelcomeComplete} />;
+  }
+
   return (
     <div className="comparison-container">
       <div className="nav-buttons">
@@ -274,9 +295,17 @@ function PhotoCompare() {
                 style={{ maxWidth: '100%', maxHeight: '500px', objectFit: 'cover' }}
               />
             </div>
+
+
+            
           </div>
         ))}
       </div>
+
+      <div style={{ marginTop: '20px', textAlign: 'center' }}>
+        Total comparisons performed (by the collective): {totalVotes === undefined ? 0 : totalVotes}
+      </div>
+
     </div>
   );
 }
