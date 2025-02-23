@@ -319,6 +319,7 @@ function PromptCompare() {
         loserAnswer: loserPrompt.answer
       }
 
+
   
       // Get current votes
       const votesRef = ref(db, 'totalVotes/promptVotes')
