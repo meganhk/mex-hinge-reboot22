@@ -303,7 +303,7 @@ function PhotoCompare() {
       </div>
 
       <div style={{ marginTop: '20px', textAlign: 'center' }}>
-        Total comparisons performed (by the collective): {totalVotes === undefined ? 0 : totalVotes}
+        Total comparisons performed (by the collective): {totalVotes}
       </div>
 
     </div>
