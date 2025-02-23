@@ -1,11 +1,11 @@
-import { BrowserRouter as Router, Routes, Route, Link, Navigate } from 'react-router-dom'
+import { HashRouter as Router, Routes, Route, Link, Navigate } from 'react-router-dom'
 import PhotoCompare from './components/PhotoCompare'
 import PromptCompare from './components/PromptCompare'
 import Analytics from './components/Analytics'
 import { User, VoteRecord } from './types'
 import Contributors from './components/Contributors.tsx'
 
-
+  
 const calculateTotalVotes = () => {
   const photoVotes = JSON.parse(localStorage.getItem('photoVotes') || '{}') as VoteRecord
   const promptVotes = JSON.parse(localStorage.getItem('promptVotes') || '{}') as VoteRecord
