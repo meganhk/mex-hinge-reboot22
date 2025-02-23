@@ -99,9 +99,9 @@ function WelcomeModal({ onComplete }: WelcomeModalProps) {
 
 function PhotoCompare() {
   const [userData, setUserData] = useState<User | null>(null);
-  const [currentPair, setCurrentPair] = useState<Photo[]>([]);
-  const [eloRatings, setEloRatings] = useState<{[key: number]: number}>({});
-  const [totalVotes, setTotalVotes] = useState<number>(0);
+    const [eloRatings, setEloRatings] = React.useState<{[key: number]: number}>({})
+    const [currentPair, setCurrentPair] = React.useState<Photo[]>([])
+    const [totalVotes, setTotalVotes] = React.useState(0)
 
   const INITIAL_RATING = 1500;
   const K_FACTOR = 32;
@@ -135,6 +135,55 @@ function PhotoCompare() {
      { id: 26, url: '/IMG_5104.jpeg', description: 'me w/ joss before heaven', type: 'photo' },
    ];
  
+React.useEffect(() => {
+     const votesRef = ref(db, 'totalVotes')
+ 
+     // Listen to total votes with more detailed logging
+     const votesListener = onValue(votesRef, (snapshot) => {
+       const data = snapshot.val() || { photoVotes: 0, promptVotes: 0 }
+       console.log('Current votes data:', data)
+       
+       // Ensure we're calculating a number
+       const photoVotes = Number(data.photoVotes) || 0
+       const promptVotes = Number(data.promptVotes) || 0
+       const totalVotesCount = photoVotes + promptVotes
+ 
+       console.log('Calculated total votes:', {
+         photoVotes, 
+         promptVotes, 
+         totalVotesCount
+       })
+ 
+       setTotalVotes(totalVotesCount)
+     }, (error) => {
+       console.error('Error fetching total votes:', error)
+       setTotalVotes(0)
+     })
+ 
+     // Listen to Elo ratings
+     const eloRatingsRef = ref(db, 'photoEloRatings')
+     const ratingsListener = onValue(eloRatingsRef, (snapshot) => {
+       const data = snapshot.val() || {}
+       
+       // Initialize ratings for any items without existing ratings
+       const initialRatings = allPhotos.reduce((acc, photo) => {
+         acc[photo.id] = data[photo.id] || INITIAL_RATING
+         return acc
+       }, {} as {[key: number]: number})
+ 
+       setEloRatings(initialRatings)
+     })
+ 
+     // Initialize first pair when component mounts
+     const initialPair = getRandomPair()
+     setCurrentPair(initialPair)
+ 
+     // Cleanup listeners
+     return () => {
+       votesListener()
+       ratingsListener()
+     }
+   }, [])
 
   // Calculate expected score based on Elo ratings
   const calculateExpectedScore = (ratingA: number, ratingB: number): number => {
@@ -273,6 +322,11 @@ function PhotoCompare() {
     <div className="comparison-container">
       <div className="nav-buttons">
         <Link to="/" className="nav-button">Home</Link>
+               {totalVotes >= 10 && (
+                 <Link to="/analytics" className="nav-button">
+                   View Analytics
+                 </Link>
+               )}
       </div>
 
       <h1 className="title">Choose the better photo</h1>
