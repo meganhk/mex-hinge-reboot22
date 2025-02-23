@@ -243,6 +243,10 @@ React.useEffect(() => {
         loserUrl: loserPhoto.url
       };
 
+       const votesRef = ref(db, 'totalVotes/promptVotes')
+            const snapshot = await get(votesRef)
+            const currentVotes = snapshot.val() || 0
+
       // Prepare all updates
       const updates = {
         [`users/${userData.id}/comparisons`]: newComparisons,
