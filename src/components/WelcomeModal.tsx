@@ -30,6 +30,8 @@ function WelcomeModal({ onComplete }: WelcomeModalProps) {
             ...userData,
             id: crypto.randomUUID(),
             comparisons: 0,
+            photoComparisons: 0,
+            promptComparisons: 0,
             lastActive: Date.now(),
             gender: userData.gender!,
             attractedTo: userData.attractedTo!

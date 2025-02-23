@@ -19,9 +19,12 @@ export interface Photo {
   export interface User {
     id: string;
     username?: string;
+    age: number;
     gender: 'male' | 'female' | 'other';
     attractedTo: ('men' | 'women' | 'both')[];
     comparisons: number;
+    photoComparisons: number;
+    promptComparisons: number;
     lastActive: number;
   }
   
