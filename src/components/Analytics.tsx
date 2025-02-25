@@ -8,6 +8,12 @@ interface EloRatings {
   [key: number]: number;
 }
 
+interface FormData {
+  name: string;
+  contact: string;
+  message: string;
+}
+
 function Analytics() {
   const allPhotos: Photo[] = [
     { id: 1, url: '/IMG_8281.jpeg', description: 'me on bed', type: 'photo' },
@@ -125,11 +131,20 @@ function Analytics() {
     },
   ];
 
+  const K_FACTOR = 32;
   const INITIAL_RATING = 1500;
 
   const [showBest, setShowBest] = useState<boolean>(true);
+  const [showForm, setShowForm] = useState<boolean>(false);
+  const [selectedItem, setSelectedItem] = useState<Photo | Prompt | null>(null);
   const [photoEloRatings, setPhotoEloRatings] = useState<EloRatings>({});
   const [promptEloRatings, setPromptEloRatings] = useState<EloRatings>({});
+  const [formData, setFormData] = useState<FormData>({
+    name: '',
+    contact: '',
+    message: ''
+  });
+
 
   useEffect(() => {
     // Listen to photo Elo ratings
@@ -195,6 +210,18 @@ function Analytics() {
     { type: 'photo', index: 5 },
   ];
 
+  const handleInteraction = (item: Photo | Prompt): void => {
+    setSelectedItem(item)
+    setShowForm(true)
+  }
+
+  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>): Promise<void> => {
+  };
+
+  // Function to simulate an Elo rating update when an item is "liked"
+  const handleEloUpdate = async (item: Photo | Prompt) => {
+  }
+
   return (
     <div className="container">
       <div className="nav-buttons">
@@ -218,30 +245,102 @@ function Analytics() {
         </button>
       </div>
 
+      
       <div className="profile-layout">
         {profileLayout.map((item, idx) => (
-          <div key={idx} className={`profile-item ${item.type}`}>
-            {item.type === 'photo' ? (
-              <div className="photo-card analytics">
-                <div className="photo-wrapper">
-                  <img 
-                    src={sortedPhotos[item.index].url} 
-                    alt={sortedPhotos[item.index].description} 
+          <div key={idx} className="profile-item-container">
+            <div className={`profile-item ${item.type}`}>
+              {item.type === 'photo' ? (
+                <div className="photo-card analytics">
+                  <div className="photo-wrapper">
+                    <img 
+                      src={sortedPhotos[item.index].url} 
+                      alt={sortedPhotos[item.index].description} 
+                    />
+                  </div>
+                  <button 
+                    className="like-button"
+                    onClick={() => {
+                      handleInteraction(sortedPhotos[item.index]);
+                      handleEloUpdate(sortedPhotos[item.index]);
+                    }}
+                  >
+                    ♡
+                  </button>
+                </div>
+              ) : (
+                <div className="prompt-card analytics">
+                  <div className="prompt-content">
+                    <h3 className="prompt-question">{sortedPrompts[item.index].question}</h3>
+                    <p className="prompt-answer">{sortedPrompts[item.index].answer}</p>
+                  </div>
+                  <button 
+                    className="like-button"
+                    onClick={() => {
+                      handleInteraction(sortedPrompts[item.index]);
+                      handleEloUpdate(sortedPrompts[item.index]);
+                    }}
+                  >
+                    ♡
+                  </button>
+                </div>
+              )}
+            </div>
+            
+            {/* Inline form that appears below the selected item */}
+            {selectedItem && 
+             ((item.type === 'photo' && selectedItem.id === sortedPhotos[item.index].id) || 
+              (item.type === 'prompt' && selectedItem.id === sortedPrompts[item.index].id)) && (
+              <div className="mt-4 p-4 bg-white rounded-lg shadow">
+                <form onSubmit={handleSubmit} className="space-y-4">
+                  <input
+                    type="text"
+                    placeholder="Your name"
+                    value={formData.name}
+                    onChange={(e: React.ChangeEvent<HTMLInputElement>) => 
+                      setFormData({...formData, name: e.target.value})}
+                    className="w-full p-3 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    required
                   />
-                  <div className="photo-stats">
-                    Rating: {Math.round(sortedPhotos[item.index].rating)}
+                  
+                  <input
+                    type="text"
+                    placeholder="Your contact info"
+                    value={formData.contact}
+                    onChange={(e: React.ChangeEvent<HTMLInputElement>) => 
+                      setFormData({...formData, contact: e.target.value})}
+                    className="w-full p-3 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    required
+                  />
+                  
+                  <textarea
+                    placeholder="Type a message..."
+                    value={formData.message}
+                    onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => 
+                      setFormData({...formData, message: e.target.value})}
+                    className="w-full p-3 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500 min-h-[100px]"
+                    required
+                  />
+
+                  <div className="flex gap-3">
+                    <button
+                      type="submit"
+                      className="nav-button"
+                    >
+                      Start a chat
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setShowForm(false);
+                        setSelectedItem(null);
+                      }}
+                      className="flex-1 bg-gray-200 text-gray-800 py-3 px-6 rounded-lg hover:bg-gray-300 transition-colors"
+                    >
+                      Cancel
+                    </button>
                   </div>
-                </div>
-              </div>
-            ) : (
-              <div className="prompt-card analytics">
-                <div className="prompt-content">
-                  <h3 className="prompt-question">{sortedPrompts[item.index].question}</h3>
-                  <p className="prompt-answer">{sortedPrompts[item.index].answer}</p>
-                  <div className="prompt-stats">
-                    Rating: {Math.round(sortedPrompts[item.index].rating)}
-                  </div>
-                </div>
+                </form>
               </div>
             )}
           </div>
@@ -250,5 +349,4 @@ function Analytics() {
     </div>
   );
 }
-
 export default Analytics;
